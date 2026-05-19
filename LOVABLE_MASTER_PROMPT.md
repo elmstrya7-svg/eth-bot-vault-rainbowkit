@@ -81,6 +81,7 @@ const { bot, deployment, price, vault, wallet } = useEthBotDashboard({});
 Use deployment.deployVault() for the Deploy Vault Contract button.
 Use deployment.vaultAddress as the live deployed contract address.
 If deployment.vaultAddress is empty, show the Deploy Vault Contract button and disable Fund Contract and Start Bot until deployment is confirmed.
+Use deployment.deployStatusText and deployment.contractStatusText for live deployment status. If deployment.deployStatus is "cancelled", "failed", or "timeout", stop showing "Confirming" and display deployment.error.message if available.
 
 Data mappings:
 
@@ -122,13 +123,29 @@ bot.isFunded
 Pending transaction hash:
 vault.pendingHash
 
+Deploy transaction hash:
+deployment.deployHash
+
 Write pending:
 vault.isWritePending
 
 Confirming:
 vault.isConfirming
 
+Deploy status:
+deployment.deployStatus
+
+Deploy status text:
+deployment.deployStatusText
+
+Contract status:
+deployment.contractStatus
+
+Contract status text:
+deployment.contractStatusText
+
 Errors:
+deployment.error
 vault.error
 price.error
 wallet.error
@@ -232,8 +249,15 @@ Build the UI as an app dashboard, not a marketing page. Use a dense, polished tr
    - If vault.pendingHash exists, show:
      - Short hash
      - Link to https://etherscan.io/tx/${vault.pendingHash}
+   - If deployment.deployHash exists and deployment.vaultAddress is empty, show:
+     - Short deploy hash
+     - Link to https://etherscan.io/tx/${deployment.deployHash}
+     - Status from deployment.deployStatusText
+   - If deployment.deployStatus is "cancelled", "failed", or "timeout", display that state instead of Confirming.
+   - If deployment.contractStatus is "missing", tell the user no contract was found at the stored address and keep Fund Contract/Start Bot disabled.
    - Show success state when vault.isConfirmed is true.
    - Show readable error message if vault.error exists.
+   - Show readable deployment error message if deployment.error exists.
 
 9. Optional trading preview card
    - Keep it clearly labeled as a preview.
@@ -282,6 +306,7 @@ async function withdrawContractEth() {
 
 - Wrap async calls in try/catch and display the error message.
 - After successful transactions, call vault.refetch().
+- Use deployment.refetchDeploymentStatus() to refresh deployment status if a deploy transaction appears stuck.
 - After successful vault deployment, use deployment.vaultAddress automatically. Do not ask the user to paste a contract address.
 - Keep all real ETH transfers behind wallet confirmation.
 

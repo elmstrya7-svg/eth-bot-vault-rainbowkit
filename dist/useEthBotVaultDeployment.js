@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useAccount, useChainId, useDeployContract, useSwitchChain, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useChainId, useDeployContract, useSwitchChain } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { ETH_BOT_VAULT_ABI } from "./abi.js";
 import { ETH_BOT_VAULT_BYTECODE } from "./bytecode.js";
@@ -13,6 +13,16 @@ function getStoredAddress(storageKey) {
     const value = window.localStorage.getItem(storageKey);
     return value && isAddress(value) ? value : undefined;
 }
+function getChromeWalletProvider() {
+    if (typeof window === "undefined")
+        return undefined;
+    return window.ethereum;
+}
+function isUserRejection(error) {
+    const maybeError = error;
+    const message = maybeError.message?.toLowerCase() ?? "";
+    return maybeError.code === 4001 || maybeError.cause?.code === 4001 || message.includes("user rejected") || message.includes("user denied");
+}
 function toError(error) {
     if (!error)
         return undefined;
@@ -22,63 +32,195 @@ function toError(error) {
 }
 export function useEthBotVaultDeployment(options = {}) {
     const requiredChainId = options.chainId ?? mainnet.id;
-    const confirmations = options.confirmations ?? 1;
+    const deploymentTimeoutMs = options.deploymentTimeoutMs ?? 240_000;
     const storageKey = options.storageKey ?? DEFAULT_ETH_BOT_VAULT_STORAGE_KEY;
     const chainId = useChainId();
     const account = useAccount();
     const { switchChainAsync } = useSwitchChain();
     const [vaultAddress, setVaultAddressState] = useState();
-    const { data: deployHash, deployContractAsync, error: deployError, isPending: isDeployPending } = useDeployContract();
-    const wait = useWaitForTransactionReceipt({
-        hash: deployHash,
-        chainId: requiredChainId,
-        confirmations,
-        query: {
-            enabled: Boolean(deployHash)
-        }
-    });
+    const [submittedDeployHash, setSubmittedDeployHash] = useState();
+    const [deployStatus, setDeployStatus] = useState("idle");
+    const [deployStatusError, setDeployStatusError] = useState();
+    const [contractStatus, setContractStatus] = useState("unknown");
+    const { deployContractAsync, error: deployError, isPending: isDeployPending } = useDeployContract();
     useEffect(() => {
         setVaultAddressState(getStoredAddress(storageKey));
     }, [storageKey]);
     const setVaultAddress = useCallback((address) => {
         setVaultAddressState(address);
+        setContractStatus("deployed");
         if (typeof window !== "undefined") {
             window.localStorage.setItem(storageKey, address);
         }
     }, [storageKey]);
     const clearVaultAddress = useCallback(() => {
         setVaultAddressState(undefined);
+        setContractStatus("unknown");
         if (typeof window !== "undefined") {
             window.localStorage.removeItem(storageKey);
         }
     }, [storageKey]);
+    const refetchDeploymentStatus = useCallback(async () => {
+        const provider = getChromeWalletProvider();
+        if (!provider || !vaultAddress) {
+            setContractStatus(vaultAddress ? "unknown" : "missing");
+            return;
+        }
+        setContractStatus("checking");
+        try {
+            const code = await provider.request({
+                method: "eth_getCode",
+                params: [vaultAddress, "latest"]
+            });
+            setContractStatus(typeof code === "string" && code !== "0x" ? "deployed" : "missing");
+        }
+        catch (error) {
+            setContractStatus("unknown");
+            setDeployStatusError(toError(error));
+        }
+    }, [vaultAddress]);
     useEffect(() => {
-        const deployedAddress = wait.data?.contractAddress;
-        if (deployedAddress)
-            setVaultAddress(deployedAddress);
-    }, [setVaultAddress, wait.data?.contractAddress]);
+        void refetchDeploymentStatus();
+    }, [refetchDeploymentStatus]);
+    useEffect(() => {
+        if (!vaultAddress)
+            return;
+        const intervalId = window.setInterval(() => {
+            void refetchDeploymentStatus();
+        }, 15_000);
+        return () => {
+            window.clearInterval(intervalId);
+        };
+    }, [refetchDeploymentStatus, vaultAddress]);
+    useEffect(() => {
+        if (!submittedDeployHash)
+            return;
+        const provider = getChromeWalletProvider();
+        if (!provider) {
+            setDeployStatus("failed");
+            setDeployStatusError(new Error("Chrome wallet provider is not available."));
+            return;
+        }
+        const activeProvider = provider;
+        let cancelled = false;
+        const startedAt = Date.now();
+        async function pollReceipt() {
+            if (cancelled)
+                return;
+            try {
+                const receipt = (await activeProvider.request({
+                    method: "eth_getTransactionReceipt",
+                    params: [submittedDeployHash]
+                }));
+                if (!receipt) {
+                    if (Date.now() - startedAt >= deploymentTimeoutMs) {
+                        setDeployStatus("timeout");
+                        setDeployStatusError(new Error("Deployment transaction was not confirmed. It may have been cancelled or replaced in the wallet."));
+                        return;
+                    }
+                    window.setTimeout(() => {
+                        void pollReceipt();
+                    }, 4_000);
+                    return;
+                }
+                if (receipt.status === "0x0") {
+                    setDeployStatus("failed");
+                    setDeployStatusError(new Error("Deployment transaction failed on-chain."));
+                    return;
+                }
+                if (receipt.contractAddress && isAddress(receipt.contractAddress)) {
+                    const code = await activeProvider.request({
+                        method: "eth_getCode",
+                        params: [receipt.contractAddress, "latest"]
+                    });
+                    if (typeof code === "string" && code !== "0x") {
+                        setVaultAddress(receipt.contractAddress);
+                        setDeployStatus("deployed");
+                        setDeployStatusError(undefined);
+                        return;
+                    }
+                }
+                setDeployStatus("failed");
+                setDeployStatusError(new Error("Deployment transaction confirmed, but no contract code was found."));
+            }
+            catch (error) {
+                setDeployStatus("failed");
+                setDeployStatusError(toError(error));
+            }
+        }
+        setDeployStatus("confirming");
+        void pollReceipt();
+        return () => {
+            cancelled = true;
+        };
+    }, [deploymentTimeoutMs, setVaultAddress, submittedDeployHash]);
     const deployVault = useCallback(async () => {
         if (!account.isConnected)
             throw new Error("Connect a wallet before deploying the vault.");
         if (chainId !== requiredChainId)
             await switchChainAsync({ chainId: requiredChainId });
-        return deployContractAsync({
-            abi: ETH_BOT_VAULT_ABI,
-            bytecode: ETH_BOT_VAULT_BYTECODE,
-            chainId: requiredChainId
-        });
+        setDeployStatus("walletPending");
+        setDeployStatusError(undefined);
+        try {
+            const hash = await deployContractAsync({
+                abi: ETH_BOT_VAULT_ABI,
+                bytecode: ETH_BOT_VAULT_BYTECODE,
+                chainId: requiredChainId
+            });
+            setSubmittedDeployHash(hash);
+            setDeployStatus("confirming");
+            return hash;
+        }
+        catch (error) {
+            setDeployStatus(isUserRejection(error) ? "cancelled" : "failed");
+            setDeployStatusError(toError(error));
+            throw error;
+        }
     }, [account.isConnected, chainId, deployContractAsync, requiredChainId, switchChainAsync]);
-    const error = useMemo(() => toError(deployError) ?? toError(wait.error), [deployError, wait.error]);
+    const error = useMemo(() => deployStatusError ?? toError(deployError), [deployError, deployStatusError]);
+    const deployStatusText = useMemo(() => {
+        if (isDeployPending)
+            return "Confirm in wallet";
+        if (deployStatus === "walletPending")
+            return "Confirm in wallet";
+        if (deployStatus === "confirming")
+            return "Confirming deployment";
+        if (deployStatus === "deployed")
+            return "Vault deployed";
+        if (deployStatus === "cancelled")
+            return "Deployment cancelled";
+        if (deployStatus === "failed")
+            return "Deployment failed";
+        if (deployStatus === "timeout")
+            return "Deployment not confirmed";
+        return vaultAddress ? "Vault address loaded" : "Not deployed";
+    }, [deployStatus, isDeployPending, vaultAddress]);
+    const contractStatusText = useMemo(() => {
+        if (!vaultAddress)
+            return "No vault address";
+        if (contractStatus === "checking")
+            return "Checking contract";
+        if (contractStatus === "deployed")
+            return "Contract live";
+        if (contractStatus === "missing")
+            return "No contract found at stored address";
+        return "Contract status unknown";
+    }, [contractStatus, vaultAddress]);
     return {
         vaultAddress,
-        deployHash,
+        deployHash: submittedDeployHash,
+        deployStatus,
+        deployStatusText,
+        contractStatus,
+        contractStatusText,
         isConnected: account.isConnected,
         isCorrectChain: chainId === requiredChainId,
         isDeployPending,
-        isDeploying: wait.isLoading,
-        isDeployed: wait.isSuccess && Boolean(vaultAddress),
+        isDeploying: deployStatus === "walletPending" || deployStatus === "confirming",
+        isDeployed: contractStatus === "deployed" && Boolean(vaultAddress),
         error,
         deployVault,
+        refetchDeploymentStatus,
         setVaultAddress,
         clearVaultAddress
     };

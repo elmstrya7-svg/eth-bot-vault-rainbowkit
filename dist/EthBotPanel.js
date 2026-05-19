@@ -34,8 +34,15 @@ export function EthBotPanel({ vaultAddress, chainId = mainnet.id, className, tit
     const effectiveVaultAddress = vaultAddress ?? deployment.vaultAddress;
     const isBusy = vault.isWritePending || vault.isConfirming || deployment.isDeployPending || deployment.isDeploying;
     const status = useMemo(() => {
-        if (!effectiveVaultAddress)
-            return deployment.isDeploying ? "Deploying vault" : "Deploy vault";
+        if (!effectiveVaultAddress) {
+            if (deployment.deployStatus === "cancelled" || deployment.deployStatus === "failed" || deployment.deployStatus === "timeout") {
+                return deployment.deployStatusText;
+            }
+            return deployment.isDeploying ? deployment.deployStatusText : "Deploy vault";
+        }
+        if (deployment.contractStatus === "checking" || deployment.contractStatus === "missing" || deployment.contractStatus === "unknown") {
+            return deployment.contractStatusText;
+        }
         if (!vault.isConnected)
             return "Connect wallet";
         if (!vault.isCorrectChain)
@@ -50,6 +57,10 @@ export function EthBotPanel({ vaultAddress, chainId = mainnet.id, className, tit
     }, [
         bot.isFunded,
         bot.isRunning,
+        deployment.contractStatus,
+        deployment.contractStatusText,
+        deployment.deployStatus,
+        deployment.deployStatusText,
         deployment.isDeploying,
         effectiveVaultAddress,
         isBusy,
@@ -91,7 +102,7 @@ export function EthBotPanel({ vaultAddress, chainId = mainnet.id, className, tit
             gap: 16,
             maxWidth: 520,
             padding: 18
-        }, children: [_jsxs("header", { style: { display: "grid", gap: 6 }, children: [_jsx("h2", { style: { fontSize: 18, lineHeight: 1.2, margin: 0 }, children: title }), _jsxs("div", { style: { color: "#4b5563", fontSize: 14 }, children: ["Status: ", status] })] }), _jsxs("div", { style: { display: "grid", gap: 8 }, children: [_jsx(Row, { label: "Vault contract", value: effectiveVaultAddress ? `${effectiveVaultAddress.slice(0, 6)}...${effectiveVaultAddress.slice(-4)}` : "Not deployed" }), _jsx(Row, { label: "ETH / USDT", value: price.priceText }), _jsx(Row, { label: "24h change", value: price.changePercent24hText }), _jsx(Row, { label: "Ticker", value: `${price.source} ${price.status}` }), _jsx(Row, { label: "Wallet ETH", value: `${Number(wallet.balanceEth).toFixed(6)} ETH` }), _jsx(Row, { label: "Contract ETH", value: `${Number(vault.balanceEth).toFixed(6)} ETH` }), _jsx(Row, { label: "Sent to bot", value: `${Number(bot.forwardedEth).toFixed(6)} ETH` }), _jsx(Row, { label: "Sent value", value: formatUsd(bot.forwardedUsd) })] }), !effectiveVaultAddress ? (_jsx("button", { disabled: !canDeploy, onClick: () => void deployVault(), style: { ...buttonStyle, opacity: canDeploy ? 1 : 0.5 }, type: "button", children: "Deploy Vault Contract" })) : null, _jsxs("div", { style: { borderTop: "1px solid #e5e7eb", display: "grid", gap: 10, paddingTop: 14 }, children: [_jsx("h3", { style: { fontSize: 15, lineHeight: 1.2, margin: 0 }, children: "Fund Contract" }), _jsxs("label", { style: { display: "grid", gap: 6, fontSize: 14, fontWeight: 700 }, children: ["Amount ETH", _jsx("input", { inputMode: "decimal", min: "0", onChange: (event) => setFundAmountEth(event.target.value), placeholder: "0.01", step: "any", style: {
+        }, children: [_jsxs("header", { style: { display: "grid", gap: 6 }, children: [_jsx("h2", { style: { fontSize: 18, lineHeight: 1.2, margin: 0 }, children: title }), _jsxs("div", { style: { color: "#4b5563", fontSize: 14 }, children: ["Status: ", status] })] }), _jsxs("div", { style: { display: "grid", gap: 8 }, children: [_jsx(Row, { label: "Vault contract", value: effectiveVaultAddress ? `${effectiveVaultAddress.slice(0, 6)}...${effectiveVaultAddress.slice(-4)}` : "Not deployed" }), _jsx(Row, { label: "ETH / USDT", value: price.priceText }), _jsx(Row, { label: "24h change", value: price.changePercent24hText }), _jsx(Row, { label: "Ticker", value: `${price.source} ${price.status}` }), _jsx(Row, { label: "Wallet ETH", value: `${Number(wallet.balanceEth).toFixed(6)} ETH` }), _jsx(Row, { label: "Contract ETH", value: `${Number(vault.balanceEth).toFixed(6)} ETH` }), _jsx(Row, { label: "Sent to bot", value: `${Number(bot.forwardedEth).toFixed(6)} ETH` }), _jsx(Row, { label: "Sent value", value: formatUsd(bot.forwardedUsd) })] }), !effectiveVaultAddress ? (_jsx("button", { disabled: !canDeploy, onClick: () => void deployVault(), style: { ...buttonStyle, opacity: canDeploy ? 1 : 0.5 }, type: "button", children: "Deploy Vault Contract" })) : null, deployment.deployHash && !effectiveVaultAddress ? (_jsx("a", { href: `https://etherscan.io/tx/${deployment.deployHash}`, rel: "noreferrer", style: { color: "#2563eb", fontSize: 14, overflowWrap: "anywhere" }, target: "_blank", children: "View deployment transaction" })) : null, _jsxs("div", { style: { borderTop: "1px solid #e5e7eb", display: "grid", gap: 10, paddingTop: 14 }, children: [_jsx("h3", { style: { fontSize: 15, lineHeight: 1.2, margin: 0 }, children: "Fund Contract" }), _jsxs("label", { style: { display: "grid", gap: 6, fontSize: 14, fontWeight: 700 }, children: ["Amount ETH", _jsx("input", { inputMode: "decimal", min: "0", onChange: (event) => setFundAmountEth(event.target.value), placeholder: "0.01", step: "any", style: {
                                     border: "1px solid #d1d5db",
                                     borderRadius: 6,
                                     font: "inherit",

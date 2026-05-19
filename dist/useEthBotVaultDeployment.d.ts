@@ -4,10 +4,17 @@ export type UseEthBotVaultDeploymentOptions = {
     chainId?: number;
     confirmations?: number;
     storageKey?: string;
+    deploymentTimeoutMs?: number;
 };
+export type DeploymentTransactionStatus = "idle" | "walletPending" | "confirming" | "deployed" | "failed" | "cancelled" | "timeout";
+export type DeploymentContractStatus = "unknown" | "checking" | "deployed" | "missing";
 export type UseEthBotVaultDeploymentResult = {
     vaultAddress?: Address;
     deployHash?: Hash;
+    deployStatus: DeploymentTransactionStatus;
+    deployStatusText: string;
+    contractStatus: DeploymentContractStatus;
+    contractStatusText: string;
     isConnected: boolean;
     isCorrectChain: boolean;
     isDeployPending: boolean;
@@ -15,6 +22,7 @@ export type UseEthBotVaultDeploymentResult = {
     isDeployed: boolean;
     error?: Error;
     deployVault: () => Promise<Hash>;
+    refetchDeploymentStatus: () => Promise<void>;
     setVaultAddress: (address: Address) => void;
     clearVaultAddress: () => void;
 };

@@ -57,7 +57,15 @@ export function EthBotPanel({
   const isBusy = vault.isWritePending || vault.isConfirming || deployment.isDeployPending || deployment.isDeploying;
 
   const status = useMemo(() => {
-    if (!effectiveVaultAddress) return deployment.isDeploying ? "Deploying vault" : "Deploy vault";
+    if (!effectiveVaultAddress) {
+      if (deployment.deployStatus === "cancelled" || deployment.deployStatus === "failed" || deployment.deployStatus === "timeout") {
+        return deployment.deployStatusText;
+      }
+      return deployment.isDeploying ? deployment.deployStatusText : "Deploy vault";
+    }
+    if (deployment.contractStatus === "checking" || deployment.contractStatus === "missing" || deployment.contractStatus === "unknown") {
+      return deployment.contractStatusText;
+    }
     if (!vault.isConnected) return "Connect wallet";
     if (!vault.isCorrectChain) return "Switch to Ethereum mainnet";
     if (isBusy) return vault.isWritePending ? "Confirm in wallet" : "Waiting for confirmation";
@@ -67,6 +75,10 @@ export function EthBotPanel({
   }, [
     bot.isFunded,
     bot.isRunning,
+    deployment.contractStatus,
+    deployment.contractStatusText,
+    deployment.deployStatus,
+    deployment.deployStatusText,
     deployment.isDeploying,
     effectiveVaultAddress,
     isBusy,
@@ -143,6 +155,17 @@ export function EthBotPanel({
         >
           Deploy Vault Contract
         </button>
+      ) : null}
+
+      {deployment.deployHash && !effectiveVaultAddress ? (
+        <a
+          href={`https://etherscan.io/tx/${deployment.deployHash}`}
+          rel="noreferrer"
+          style={{ color: "#2563eb", fontSize: 14, overflowWrap: "anywhere" }}
+          target="_blank"
+        >
+          View deployment transaction
+        </a>
       ) : null}
 
       <div style={{ borderTop: "1px solid #e5e7eb", display: "grid", gap: 10, paddingTop: 14 }}>

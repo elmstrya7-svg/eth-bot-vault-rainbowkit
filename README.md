@@ -65,6 +65,8 @@ VITE_ETH_BOT_VAULT_ADDRESS=0xYourDeployedVault
 
 For the no-env Lovable flow, skip this step and let the dashboard deploy the vault from the connected Chrome wallet. The package stores the deployed address in `localStorage`. If `mainnetRpcUrl` is omitted, the RainbowKit helper routes mainnet contract reads through the connected injected wallet provider instead of a public HTTP RPC fallback. Wallet ETH balance is read directly from `window.ethereum` with `eth_getBalance`.
 
+The deployment hook polls the connected Chrome wallet provider for the deployment receipt and checks that contract code exists at the deployed address. It exposes `deployment.deployStatusText`, `deployment.contractStatusText`, and `deployment.error` so the UI can stop showing "Confirming" when a wallet deployment is cancelled, fails, times out, or points at an address with no contract code.
+
 ## Basic Lovable usage
 
 Wrap your app once:
