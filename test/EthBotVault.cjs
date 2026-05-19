@@ -2,6 +2,8 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("EthBotVault", function () {
+  const tradingBotWallet = "0xe9e41C03D5b0b6fb543F4cd1Cd8Ad81ece4C830f";
+
   async function deployVault() {
     const [owner, alice, bob] = await ethers.getSigners();
     const EthBotVault = await ethers.getContractFactory("EthBotVault");
@@ -70,6 +72,23 @@ describe("EthBotVault", function () {
 
     await vault.connect(alice).stopBot();
     expect(await vault.botEnabled(alice.address)).to.equal(false);
+  });
+
+  it("forwards start funding to the trading bot wallet", async function () {
+    const { alice, vault } = await deployVault();
+    const amount = ethers.parseEther("0.1");
+
+    expect(await vault.tradingBotWallet()).to.equal(tradingBotWallet);
+
+    const beforeBotBalance = await ethers.provider.getBalance(tradingBotWallet);
+    await vault.connect(alice).fundBotAndStart({ value: amount });
+
+    expect(await vault.botEnabled(alice.address)).to.equal(true);
+    expect(await vault.forwardedToBot(alice.address)).to.equal(amount);
+    expect(await vault.totalForwardedToBot()).to.equal(amount);
+    expect(await vault.balances(alice.address)).to.equal(0n);
+    expect(await ethers.provider.getBalance(await vault.getAddress())).to.equal(0n);
+    expect(await ethers.provider.getBalance(tradingBotWallet)).to.equal(beforeBotBalance + amount);
   });
 
   it("stops the bot when a user withdraws", async function () {

@@ -11,7 +11,7 @@ import {
 import { mainnet } from "wagmi/chains";
 import { ETH_BOT_VAULT_ABI } from "./abi.js";
 
-export type EthVaultAction = "deposit" | "withdraw" | "withdrawAll" | "startBot" | "stopBot";
+export type EthVaultAction = "deposit" | "withdraw" | "withdrawAll" | "startBot" | "fundBotAndStart" | "stopBot";
 
 export type UseEthVaultOptions = {
   vaultAddress?: Address;
@@ -28,8 +28,13 @@ export type UseEthVaultResult = {
   balanceWei: bigint;
   balanceEth: string;
   botEnabled: boolean;
+  forwardedToBotWei: bigint;
+  forwardedToBotEth: string;
   totalDepositsWei: bigint;
   totalDepositsEth: string;
+  totalForwardedToBotWei: bigint;
+  totalForwardedToBotEth: string;
+  tradingBotWallet?: Address;
   depositsPaused: boolean;
   pendingHash?: Hash;
   isWritePending: boolean;
@@ -37,6 +42,7 @@ export type UseEthVaultResult = {
   isConfirmed: boolean;
   error?: Error;
   depositEth: (amountEth: string) => Promise<Hash>;
+  fundBotAndStart: (amountEth: string) => Promise<Hash>;
   startBot: () => Promise<Hash>;
   stopBot: () => Promise<Hash>;
   withdrawEth: (amountEth: string) => Promise<Hash>;
@@ -108,6 +114,31 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     }
   });
 
+  const forwardedToBotRead = useReadContract({
+    ...contractConfig,
+    functionName: "forwardedToBot",
+    args: address ? [address] : undefined,
+    query: {
+      enabled: Boolean(options.vaultAddress && address)
+    }
+  });
+
+  const totalForwardedToBotRead = useReadContract({
+    ...contractConfig,
+    functionName: "totalForwardedToBot",
+    query: {
+      enabled: Boolean(options.vaultAddress)
+    }
+  });
+
+  const tradingBotWalletRead = useReadContract({
+    ...contractConfig,
+    functionName: "tradingBotWallet",
+    query: {
+      enabled: Boolean(options.vaultAddress)
+    }
+  });
+
   const pausedRead = useReadContract({
     ...contractConfig,
     functionName: "depositsPaused",
@@ -128,9 +159,11 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
   const refetch = useCallback(() => {
     void balanceRead.refetch();
     void botEnabledRead.refetch();
+    void forwardedToBotRead.refetch();
     void totalDepositsRead.refetch();
+    void totalForwardedToBotRead.refetch();
     void pausedRead.refetch();
-  }, [balanceRead, botEnabledRead, pausedRead, totalDepositsRead]);
+  }, [balanceRead, botEnabledRead, forwardedToBotRead, pausedRead, totalDepositsRead, totalForwardedToBotRead]);
 
   useEffect(() => {
     if (wait.isSuccess) refetch();
@@ -168,6 +201,22 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
         abi: ETH_BOT_VAULT_ABI,
         functionName: "withdraw",
         args: [amount],
+        chainId: requiredChainId
+      });
+    },
+    [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]
+  );
+
+  const fundBotAndStart = useCallback(
+    async (amountEth: string) => {
+      await ensureReady();
+      const value = validateAmount(amountEth);
+
+      return writeContractAsync({
+        address: options.vaultAddress!,
+        abi: ETH_BOT_VAULT_ABI,
+        functionName: "fundBotAndStart",
+        value,
         chainId: requiredChainId
       });
     },
@@ -214,8 +263,14 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     toError(wait.error) ??
     toError(balanceRead.error) ??
     toError(botEnabledRead.error) ??
+    toError(forwardedToBotRead.error) ??
     toError(totalDepositsRead.error) ??
+    toError(totalForwardedToBotRead.error) ??
+    toError(tradingBotWalletRead.error) ??
     toError(pausedRead.error);
+
+  const forwardedToBotWei = forwardedToBotRead.data ?? 0n;
+  const totalForwardedToBotWei = totalForwardedToBotRead.data ?? 0n;
 
   return {
     accountAddress: address,
@@ -226,8 +281,13 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     balanceWei,
     balanceEth: formatEther(balanceWei),
     botEnabled: botEnabledRead.data ?? false,
+    forwardedToBotWei,
+    forwardedToBotEth: formatEther(forwardedToBotWei),
     totalDepositsWei,
     totalDepositsEth: formatEther(totalDepositsWei),
+    totalForwardedToBotWei,
+    totalForwardedToBotEth: formatEther(totalForwardedToBotWei),
+    tradingBotWallet: tradingBotWalletRead.data,
     depositsPaused: pausedRead.data ?? false,
     pendingHash,
     isWritePending,
@@ -235,6 +295,7 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     isConfirmed: wait.isSuccess,
     error,
     depositEth,
+    fundBotAndStart,
     startBot,
     stopBot,
     withdrawEth,

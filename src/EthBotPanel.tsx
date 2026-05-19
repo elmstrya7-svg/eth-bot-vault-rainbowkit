@@ -99,8 +99,10 @@ export function EthBotPanel({
         <Row label="24h change" value={price.changePercent24hText} />
         <Row label="Ticker" value={`${price.source} ${price.status}`} />
         <Row label="Wallet ETH" value={`${Number(wallet.balanceEth).toFixed(6)} ETH`} />
-        <Row label="Funded ETH" value={`${Number(vault.balanceEth).toFixed(6)} ETH`} />
-        <Row label="Funded value" value={formatUsd(bot.fundedUsd)} />
+        <Row label="Contract ETH" value={`${Number(vault.balanceEth).toFixed(6)} ETH`} />
+        <Row label="Sent to bot" value={`${Number(bot.forwardedEth).toFixed(6)} ETH`} />
+        <Row label="Bot wallet" value={bot.tradingBotWallet ? `${bot.tradingBotWallet.slice(0, 6)}...${bot.tradingBotWallet.slice(-4)}` : "--"} />
+        <Row label="Sent value" value={formatUsd(bot.forwardedUsd)} />
       </div>
 
       <label style={{ display: "grid", gap: 6, fontSize: 14, fontWeight: 700 }}>
@@ -125,20 +127,20 @@ export function EthBotPanel({
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         <button
-          disabled={!canUseVault || vault.depositsPaused}
-          onClick={() => void runAction("deposit", () => vault.depositEth(fundAmountEth))}
-          style={{ ...buttonStyle, opacity: canUseVault && !vault.depositsPaused ? 1 : 0.5 }}
+          disabled={!canUseVault || vault.depositsPaused || bot.isRunning}
+          onClick={() => void runAction("fundBotAndStart", () => vault.fundBotAndStart(fundAmountEth))}
+          style={{ ...buttonStyle, opacity: canUseVault && !vault.depositsPaused && !bot.isRunning ? 1 : 0.5 }}
           type="button"
         >
-          Fund ETH
+          Start Bot & Fund ETH
         </button>
         <button
-          disabled={!canUseVault || !bot.isFunded}
-          onClick={() => void runAction(bot.isRunning ? "stopBot" : "startBot", bot.isRunning ? vault.stopBot : vault.startBot)}
-          style={{ ...buttonStyle, opacity: canUseVault && bot.isFunded ? 1 : 0.5 }}
+          disabled={!canUseVault || !bot.isRunning}
+          onClick={() => void runAction("stopBot", vault.stopBot)}
+          style={{ ...buttonStyle, opacity: canUseVault && bot.isRunning ? 1 : 0.5 }}
           type="button"
         >
-          {bot.isRunning ? "Stop Bot" : "Start Bot"}
+          Stop Bot
         </button>
       </div>
 
@@ -150,6 +152,11 @@ export function EthBotPanel({
       >
         Withdraw ETH
       </button>
+
+      <div style={{ color: "#6b7280", fontSize: 13, lineHeight: 1.4 }}>
+        Start Bot sends the chosen ETH amount from this contract to the trading bot wallet. Contract withdrawal only
+        applies to ETH still held in the contract.
+      </div>
 
       {vault.pendingHash ? (
         <a

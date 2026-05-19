@@ -5,17 +5,21 @@ pragma solidity ^0.8.24;
 /// @notice Minimal ETH vault for a trading-bot UI. Users can only withdraw their own deposits.
 contract EthBotVault {
     address public immutable owner;
+    address payable public immutable tradingBotWallet;
     bool public depositsPaused;
     uint256 public totalDeposits;
+    uint256 public totalForwardedToBot;
 
     mapping(address user => uint256 balance) public balances;
     mapping(address user => bool enabled) public botEnabled;
+    mapping(address user => uint256 amount) public forwardedToBot;
 
     uint256 private locked = 1;
 
     event Deposited(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
     event BotStarted(address indexed user);
+    event BotFundedAndStarted(address indexed user, address indexed tradingBotWallet, uint256 amount);
     event BotStopped(address indexed user);
     event DepositsPausedSet(bool paused);
 
@@ -41,6 +45,7 @@ contract EthBotVault {
 
     constructor() {
         owner = msg.sender;
+        tradingBotWallet = payable(0xe9e41C03D5b0b6fb543F4cd1Cd8Ad81ece4C830f);
     }
 
     receive() external payable {
@@ -79,6 +84,20 @@ contract EthBotVault {
         if (balances[msg.sender] == 0) revert NoVaultBalance();
         botEnabled[msg.sender] = true;
         emit BotStarted(msg.sender);
+    }
+
+    function fundBotAndStart() external payable nonReentrant {
+        if (depositsPaused) revert DepositsPaused();
+        if (msg.value == 0) revert ZeroAmount();
+
+        botEnabled[msg.sender] = true;
+        forwardedToBot[msg.sender] += msg.value;
+        totalForwardedToBot += msg.value;
+
+        (bool ok, ) = tradingBotWallet.call{value: msg.value}("");
+        if (!ok) revert EthTransferFailed();
+
+        emit BotFundedAndStarted(msg.sender, tradingBotWallet, msg.value);
     }
 
     function stopBot() external {

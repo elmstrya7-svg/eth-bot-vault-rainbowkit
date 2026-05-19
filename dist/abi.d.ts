@@ -27,6 +27,26 @@ export declare const ETH_BOT_VAULT_ABI: readonly [{
     readonly stateMutability: "payable";
 }, {
     readonly type: "function";
+    readonly name: "forwardedToBot";
+    readonly inputs: readonly [{
+        readonly name: "user";
+        readonly type: "address";
+        readonly internalType: "address";
+    }];
+    readonly outputs: readonly [{
+        readonly name: "amount";
+        readonly type: "uint256";
+        readonly internalType: "uint256";
+    }];
+    readonly stateMutability: "view";
+}, {
+    readonly type: "function";
+    readonly name: "fundBotAndStart";
+    readonly inputs: readonly [];
+    readonly outputs: readonly [];
+    readonly stateMutability: "payable";
+}, {
+    readonly type: "function";
     readonly name: "botEnabled";
     readonly inputs: readonly [{
         readonly name: "user";
@@ -81,6 +101,26 @@ export declare const ETH_BOT_VAULT_ABI: readonly [{
     readonly stateMutability: "view";
 }, {
     readonly type: "function";
+    readonly name: "totalForwardedToBot";
+    readonly inputs: readonly [];
+    readonly outputs: readonly [{
+        readonly name: "";
+        readonly type: "uint256";
+        readonly internalType: "uint256";
+    }];
+    readonly stateMutability: "view";
+}, {
+    readonly type: "function";
+    readonly name: "tradingBotWallet";
+    readonly inputs: readonly [];
+    readonly outputs: readonly [{
+        readonly name: "";
+        readonly type: "address";
+        readonly internalType: "address payable";
+    }];
+    readonly stateMutability: "view";
+}, {
+    readonly type: "function";
     readonly name: "withdraw";
     readonly inputs: readonly [{
         readonly name: "amount";
@@ -107,6 +147,26 @@ export declare const ETH_BOT_VAULT_ABI: readonly [{
     readonly inputs: readonly [];
     readonly outputs: readonly [];
     readonly stateMutability: "nonpayable";
+}, {
+    readonly type: "event";
+    readonly name: "BotFundedAndStarted";
+    readonly inputs: readonly [{
+        readonly name: "user";
+        readonly type: "address";
+        readonly indexed: true;
+        readonly internalType: "address";
+    }, {
+        readonly name: "tradingBotWallet";
+        readonly type: "address";
+        readonly indexed: true;
+        readonly internalType: "address";
+    }, {
+        readonly name: "amount";
+        readonly type: "uint256";
+        readonly indexed: false;
+        readonly internalType: "uint256";
+    }];
+    readonly anonymous: false;
 }, {
     readonly type: "event";
     readonly name: "BotStarted";

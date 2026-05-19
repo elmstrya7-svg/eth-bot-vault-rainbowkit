@@ -54,6 +54,28 @@ export function useEthVault(options) {
             enabled: Boolean(options.vaultAddress && address)
         }
     });
+    const forwardedToBotRead = useReadContract({
+        ...contractConfig,
+        functionName: "forwardedToBot",
+        args: address ? [address] : undefined,
+        query: {
+            enabled: Boolean(options.vaultAddress && address)
+        }
+    });
+    const totalForwardedToBotRead = useReadContract({
+        ...contractConfig,
+        functionName: "totalForwardedToBot",
+        query: {
+            enabled: Boolean(options.vaultAddress)
+        }
+    });
+    const tradingBotWalletRead = useReadContract({
+        ...contractConfig,
+        functionName: "tradingBotWallet",
+        query: {
+            enabled: Boolean(options.vaultAddress)
+        }
+    });
     const pausedRead = useReadContract({
         ...contractConfig,
         functionName: "depositsPaused",
@@ -72,9 +94,11 @@ export function useEthVault(options) {
     const refetch = useCallback(() => {
         void balanceRead.refetch();
         void botEnabledRead.refetch();
+        void forwardedToBotRead.refetch();
         void totalDepositsRead.refetch();
+        void totalForwardedToBotRead.refetch();
         void pausedRead.refetch();
-    }, [balanceRead, botEnabledRead, pausedRead, totalDepositsRead]);
+    }, [balanceRead, botEnabledRead, forwardedToBotRead, pausedRead, totalDepositsRead, totalForwardedToBotRead]);
     useEffect(() => {
         if (wait.isSuccess)
             refetch();
@@ -106,6 +130,17 @@ export function useEthVault(options) {
             abi: ETH_BOT_VAULT_ABI,
             functionName: "withdraw",
             args: [amount],
+            chainId: requiredChainId
+        });
+    }, [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]);
+    const fundBotAndStart = useCallback(async (amountEth) => {
+        await ensureReady();
+        const value = validateAmount(amountEth);
+        return writeContractAsync({
+            address: options.vaultAddress,
+            abi: ETH_BOT_VAULT_ABI,
+            functionName: "fundBotAndStart",
+            value,
             chainId: requiredChainId
         });
     }, [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]);
@@ -142,8 +177,13 @@ export function useEthVault(options) {
         toError(wait.error) ??
         toError(balanceRead.error) ??
         toError(botEnabledRead.error) ??
+        toError(forwardedToBotRead.error) ??
         toError(totalDepositsRead.error) ??
+        toError(totalForwardedToBotRead.error) ??
+        toError(tradingBotWalletRead.error) ??
         toError(pausedRead.error);
+    const forwardedToBotWei = forwardedToBotRead.data ?? 0n;
+    const totalForwardedToBotWei = totalForwardedToBotRead.data ?? 0n;
     return {
         accountAddress: address,
         chainId,
@@ -153,8 +193,13 @@ export function useEthVault(options) {
         balanceWei,
         balanceEth: formatEther(balanceWei),
         botEnabled: botEnabledRead.data ?? false,
+        forwardedToBotWei,
+        forwardedToBotEth: formatEther(forwardedToBotWei),
         totalDepositsWei,
         totalDepositsEth: formatEther(totalDepositsWei),
+        totalForwardedToBotWei,
+        totalForwardedToBotEth: formatEther(totalForwardedToBotWei),
+        tradingBotWallet: tradingBotWalletRead.data,
         depositsPaused: pausedRead.data ?? false,
         pendingHash,
         isWritePending,
@@ -162,6 +207,7 @@ export function useEthVault(options) {
         isConfirmed: wait.isSuccess,
         error,
         depositEth,
+        fundBotAndStart,
         startBot,
         stopBot,
         withdrawEth,

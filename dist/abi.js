@@ -24,6 +24,20 @@ export const ETH_BOT_VAULT_ABI = [
     },
     {
         type: "function",
+        name: "forwardedToBot",
+        inputs: [{ name: "user", type: "address", internalType: "address" }],
+        outputs: [{ name: "amount", type: "uint256", internalType: "uint256" }],
+        stateMutability: "view"
+    },
+    {
+        type: "function",
+        name: "fundBotAndStart",
+        inputs: [],
+        outputs: [],
+        stateMutability: "payable"
+    },
+    {
+        type: "function",
         name: "botEnabled",
         inputs: [{ name: "user", type: "address", internalType: "address" }],
         outputs: [{ name: "enabled", type: "bool", internalType: "bool" }],
@@ -59,6 +73,20 @@ export const ETH_BOT_VAULT_ABI = [
     },
     {
         type: "function",
+        name: "totalForwardedToBot",
+        inputs: [],
+        outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+        stateMutability: "view"
+    },
+    {
+        type: "function",
+        name: "tradingBotWallet",
+        inputs: [],
+        outputs: [{ name: "", type: "address", internalType: "address payable" }],
+        stateMutability: "view"
+    },
+    {
+        type: "function",
         name: "withdraw",
         inputs: [{ name: "amount", type: "uint256", internalType: "uint256" }],
         outputs: [],
@@ -84,6 +112,16 @@ export const ETH_BOT_VAULT_ABI = [
         inputs: [],
         outputs: [],
         stateMutability: "nonpayable"
+    },
+    {
+        type: "event",
+        name: "BotFundedAndStarted",
+        inputs: [
+            { name: "user", type: "address", indexed: true, internalType: "address" },
+            { name: "tradingBotWallet", type: "address", indexed: true, internalType: "address" },
+            { name: "amount", type: "uint256", indexed: false, internalType: "uint256" }
+        ],
+        anonymous: false
     },
     {
         type: "event",

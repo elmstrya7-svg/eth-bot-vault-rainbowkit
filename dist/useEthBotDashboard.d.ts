@@ -14,6 +14,9 @@ export declare function useEthBotDashboard(options: UseEthBotDashboardOptions): 
         isRunning: boolean;
         fundedEth: string;
         fundedUsd: number | null;
+        forwardedEth: string;
+        forwardedUsd: number | null;
+        tradingBotWallet: `0x${string}` | undefined;
         walletEth: string;
         walletUsd: number | null;
     };
