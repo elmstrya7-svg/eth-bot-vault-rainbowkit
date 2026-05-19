@@ -9,11 +9,14 @@ contract EthBotVault {
     uint256 public totalDeposits;
 
     mapping(address user => uint256 balance) public balances;
+    mapping(address user => bool enabled) public botEnabled;
 
     uint256 private locked = 1;
 
     event Deposited(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
+    event BotStarted(address indexed user);
+    event BotStopped(address indexed user);
     event DepositsPausedSet(bool paused);
 
     error ZeroAmount();
@@ -21,6 +24,7 @@ contract EthBotVault {
     error InsufficientBalance();
     error EthTransferFailed();
     error NotOwner();
+    error NoVaultBalance();
     error ReentrantCall();
 
     modifier onlyOwner() {
@@ -57,6 +61,7 @@ contract EthBotVault {
         if (amount == 0) revert ZeroAmount();
         if (balances[msg.sender] < amount) revert InsufficientBalance();
 
+        botEnabled[msg.sender] = false;
         balances[msg.sender] -= amount;
         totalDeposits -= amount;
 
@@ -68,6 +73,17 @@ contract EthBotVault {
 
     function withdrawAll() external {
         withdraw(balances[msg.sender]);
+    }
+
+    function startBot() external {
+        if (balances[msg.sender] == 0) revert NoVaultBalance();
+        botEnabled[msg.sender] = true;
+        emit BotStarted(msg.sender);
+    }
+
+    function stopBot() external {
+        botEnabled[msg.sender] = false;
+        emit BotStopped(msg.sender);
     }
 
     function setDepositsPaused(bool paused) external onlyOwner {

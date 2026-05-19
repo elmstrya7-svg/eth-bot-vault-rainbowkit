@@ -4,10 +4,14 @@ Minimal ETH deposit and withdrawal package for a RainbowKit/wagmi app. It includ
 
 - `contracts/EthBotVault.sol`: a simple mainnet-compatible ETH vault.
 - `useEthVault`: a React hook for deposit, withdraw, balance, and transaction state.
+- `useEthPriceTicker`: a live Binance `ETHUSDT` ticker over WebSocket.
+- `useWalletEthBalance`: the connected wallet ETH balance from wagmi.
+- `useEthBotDashboard`: a single hook for Lovable dashboards.
+- `EthBotPanel`: a Fund ETH, Start Bot, Stop Bot, Withdraw ETH panel.
 - `EthVaultPanel`: a basic UI you can drop into a Lovable React app.
 - `createEthBotRainbowKitConfig`: a helper for Ethereum mainnet RainbowKit config.
 
-This first version is intentionally simple: users can withdraw only the ETH they deposited from their own wallet. There is no owner function that can withdraw user funds.
+Users can withdraw only the ETH they deposited from their own wallet. There is no owner function that can withdraw user funds. `startBot()` only records that a funded user has enabled automation; your Lovable/backend bot should read that state before running any strategy.
 
 ## Install in Lovable
 
@@ -67,7 +71,7 @@ import "@rainbow-me/rainbowkit/styles.css";
 import { RainbowKitProvider, ConnectButton } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
-import { createEthBotRainbowKitConfig, EthVaultPanel } from "eth-bot-vault-rainbowkit";
+import { createEthBotRainbowKitConfig, EthBotPanel } from "eth-bot-vault-rainbowkit";
 
 const queryClient = new QueryClient();
 
@@ -83,7 +87,7 @@ export function App() {
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
           <ConnectButton />
-          <EthVaultPanel vaultAddress={import.meta.env.VITE_ETH_BOT_VAULT_ADDRESS} />
+          <EthBotPanel vaultAddress={import.meta.env.VITE_ETH_BOT_VAULT_ADDRESS} />
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
@@ -94,19 +98,78 @@ export function App() {
 ## Hook usage
 
 ```tsx
-import { useEthVault } from "eth-bot-vault-rainbowkit";
+import { useEthBotDashboard } from "eth-bot-vault-rainbowkit";
 
-export function DepositButton() {
-  const vault = useEthVault({
+export function EtherTradeLiteData() {
+  const { bot, price, vault, wallet } = useEthBotDashboard({
     vaultAddress: import.meta.env.VITE_ETH_BOT_VAULT_ADDRESS
   });
 
   return (
-    <button onClick={() => vault.depositEth("0.01")} disabled={!vault.isConnected}>
-      Deposit 0.01 ETH
-    </button>
+    <div>
+      <div>ETH price: {price.priceText}</div>
+      <div>24h change: {price.changePercent24hText}</div>
+      <div>Source: {price.source}</div>
+      <div>Wallet balance: {wallet.formatted} ETH</div>
+      <div>Funded balance: {bot.fundedEth} ETH</div>
+      <div>Bot running: {bot.isRunning ? "yes" : "no"}</div>
+      <button onClick={() => vault.depositEth("0.01")}>Fund ETH</button>
+      <button onClick={bot.isRunning ? vault.stopBot : vault.startBot}>
+        {bot.isRunning ? "Stop Bot" : "Start Bot"}
+      </button>
+      <button onClick={vault.withdrawAll}>Withdraw ETH</button>
+    </div>
   );
 }
+```
+
+## Filling your existing Lovable UI
+
+You do not need to rebuild the Lovable project from scratch if RainbowKit is already installed. Replace the demo data source with `useEthBotDashboard`.
+
+Map the fields like this:
+
+```tsx
+const { bot, price, vault, wallet } = useEthBotDashboard({
+  vaultAddress: import.meta.env.VITE_ETH_BOT_VAULT_ADDRESS
+});
+
+const etherTradeLiteFields = {
+  ethUsd: price.priceText,
+  change24h: price.changePercent24hText,
+  source: `${price.source} live`,
+  walletEthBalance: `${wallet.formatted} ETH`,
+  fundedEthBalance: `${bot.fundedEth} ETH`,
+  fundedUsdValue: bot.fundedUsd,
+  botStatus: bot.isRunning ? "Running" : bot.isFunded ? "Funded" : "Not funded",
+  fundEth: vault.depositEth,
+  startBot: vault.startBot,
+  stopBot: vault.stopBot,
+  withdrawEth: vault.withdrawAll
+};
+```
+
+The Binance ticker uses:
+
+```text
+wss://stream.binance.com:9443/ws/ethusdt@miniTicker
+```
+
+Binance documents the individual mini ticker stream with `1000ms` update speed. If a region or hosting provider blocks the global Binance endpoint, pass a custom endpoint:
+
+```tsx
+useEthBotDashboard({
+  vaultAddress: import.meta.env.VITE_ETH_BOT_VAULT_ADDRESS,
+  priceTicker: {
+    streamUrl: "wss://stream.binance.com:9443/ws/ethusdt@miniTicker"
+  }
+});
+```
+
+## Lovable master prompt snippet
+
+```text
+Use the existing RainbowKit/wagmi providers. Install github:elmstrya7-svg/eth-bot-vault-rainbowkit. Import useEthBotDashboard from eth-bot-vault-rainbowkit. Replace all demo ETH price, source, wallet balance, funded bot balance, and bot status fields with useEthBotDashboard. Use Binance live ticker from the package. Wire Fund ETH to vault.depositEth(amount), Start Bot to vault.startBot, Stop Bot to vault.stopBot, and Withdraw ETH to vault.withdrawAll. Keep every real wallet action behind the user's RainbowKit wallet confirmation.
 ```
 
 ## Publish this package to GitHub and npm

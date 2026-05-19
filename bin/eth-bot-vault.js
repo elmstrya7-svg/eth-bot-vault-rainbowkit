@@ -27,7 +27,7 @@ if (command === "init") {
 1. Deploy contracts/EthBotVault.sol and copy the deployed address.
 2. Add VITE_ETH_BOT_VAULT_ADDRESS=<deployed_mainnet_address> to Lovable.
 3. Wrap your app in WagmiProvider, QueryClientProvider, and RainbowKitProvider.
-4. Render <EthVaultPanel vaultAddress={import.meta.env.VITE_ETH_BOT_VAULT_ADDRESS} />.
+4. Render <EthBotPanel vaultAddress={import.meta.env.VITE_ETH_BOT_VAULT_ADDRESS} /> for Fund/Start/Stop/Withdraw.
 `);
   process.exit(0);
 }

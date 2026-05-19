@@ -1,5 +1,5 @@
 import { type Address, type Hash } from "viem";
-export type EthVaultAction = "deposit" | "withdraw" | "withdrawAll";
+export type EthVaultAction = "deposit" | "withdraw" | "withdrawAll" | "startBot" | "stopBot";
 export type UseEthVaultOptions = {
     vaultAddress?: Address;
     chainId?: number;
@@ -13,6 +13,7 @@ export type UseEthVaultResult = {
     isCorrectChain: boolean;
     balanceWei: bigint;
     balanceEth: string;
+    botEnabled: boolean;
     totalDepositsWei: bigint;
     totalDepositsEth: string;
     depositsPaused: boolean;
@@ -22,6 +23,8 @@ export type UseEthVaultResult = {
     isConfirmed: boolean;
     error?: Error;
     depositEth: (amountEth: string) => Promise<Hash>;
+    startBot: () => Promise<Hash>;
+    stopBot: () => Promise<Hash>;
     withdrawEth: (amountEth: string) => Promise<Hash>;
     withdrawAll: () => Promise<Hash>;
     refetch: () => void;

@@ -27,6 +27,20 @@ export declare const ETH_BOT_VAULT_ABI: readonly [{
     readonly stateMutability: "payable";
 }, {
     readonly type: "function";
+    readonly name: "botEnabled";
+    readonly inputs: readonly [{
+        readonly name: "user";
+        readonly type: "address";
+        readonly internalType: "address";
+    }];
+    readonly outputs: readonly [{
+        readonly name: "enabled";
+        readonly type: "bool";
+        readonly internalType: "bool";
+    }];
+    readonly stateMutability: "view";
+}, {
+    readonly type: "function";
     readonly name: "depositsPaused";
     readonly inputs: readonly [];
     readonly outputs: readonly [{
@@ -77,10 +91,42 @@ export declare const ETH_BOT_VAULT_ABI: readonly [{
     readonly stateMutability: "nonpayable";
 }, {
     readonly type: "function";
+    readonly name: "startBot";
+    readonly inputs: readonly [];
+    readonly outputs: readonly [];
+    readonly stateMutability: "nonpayable";
+}, {
+    readonly type: "function";
+    readonly name: "stopBot";
+    readonly inputs: readonly [];
+    readonly outputs: readonly [];
+    readonly stateMutability: "nonpayable";
+}, {
+    readonly type: "function";
     readonly name: "withdrawAll";
     readonly inputs: readonly [];
     readonly outputs: readonly [];
     readonly stateMutability: "nonpayable";
+}, {
+    readonly type: "event";
+    readonly name: "BotStarted";
+    readonly inputs: readonly [{
+        readonly name: "user";
+        readonly type: "address";
+        readonly indexed: true;
+        readonly internalType: "address";
+    }];
+    readonly anonymous: false;
+}, {
+    readonly type: "event";
+    readonly name: "BotStopped";
+    readonly inputs: readonly [{
+        readonly name: "user";
+        readonly type: "address";
+        readonly indexed: true;
+        readonly internalType: "address";
+    }];
+    readonly anonymous: false;
 }, {
     readonly type: "event";
     readonly name: "Deposited";
@@ -136,6 +182,10 @@ export declare const ETH_BOT_VAULT_ABI: readonly [{
 }, {
     readonly type: "error";
     readonly name: "NotOwner";
+    readonly inputs: readonly [];
+}, {
+    readonly type: "error";
+    readonly name: "NoVaultBalance";
     readonly inputs: readonly [];
 }, {
     readonly type: "error";

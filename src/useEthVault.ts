@@ -11,7 +11,7 @@ import {
 import { mainnet } from "wagmi/chains";
 import { ETH_BOT_VAULT_ABI } from "./abi.js";
 
-export type EthVaultAction = "deposit" | "withdraw" | "withdrawAll";
+export type EthVaultAction = "deposit" | "withdraw" | "withdrawAll" | "startBot" | "stopBot";
 
 export type UseEthVaultOptions = {
   vaultAddress?: Address;
@@ -27,6 +27,7 @@ export type UseEthVaultResult = {
   isCorrectChain: boolean;
   balanceWei: bigint;
   balanceEth: string;
+  botEnabled: boolean;
   totalDepositsWei: bigint;
   totalDepositsEth: string;
   depositsPaused: boolean;
@@ -36,6 +37,8 @@ export type UseEthVaultResult = {
   isConfirmed: boolean;
   error?: Error;
   depositEth: (amountEth: string) => Promise<Hash>;
+  startBot: () => Promise<Hash>;
+  stopBot: () => Promise<Hash>;
   withdrawEth: (amountEth: string) => Promise<Hash>;
   withdrawAll: () => Promise<Hash>;
   refetch: () => void;
@@ -96,6 +99,15 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     }
   });
 
+  const botEnabledRead = useReadContract({
+    ...contractConfig,
+    functionName: "botEnabled",
+    args: address ? [address] : undefined,
+    query: {
+      enabled: Boolean(options.vaultAddress && address)
+    }
+  });
+
   const pausedRead = useReadContract({
     ...contractConfig,
     functionName: "depositsPaused",
@@ -115,9 +127,10 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
 
   const refetch = useCallback(() => {
     void balanceRead.refetch();
+    void botEnabledRead.refetch();
     void totalDepositsRead.refetch();
     void pausedRead.refetch();
-  }, [balanceRead, pausedRead, totalDepositsRead]);
+  }, [balanceRead, botEnabledRead, pausedRead, totalDepositsRead]);
 
   useEffect(() => {
     if (wait.isSuccess) refetch();
@@ -161,6 +174,28 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]
   );
 
+  const startBot = useCallback(async () => {
+    await ensureReady();
+
+    return writeContractAsync({
+      address: options.vaultAddress!,
+      abi: ETH_BOT_VAULT_ABI,
+      functionName: "startBot",
+      chainId: requiredChainId
+    });
+  }, [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]);
+
+  const stopBot = useCallback(async () => {
+    await ensureReady();
+
+    return writeContractAsync({
+      address: options.vaultAddress!,
+      abi: ETH_BOT_VAULT_ABI,
+      functionName: "stopBot",
+      chainId: requiredChainId
+    });
+  }, [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]);
+
   const withdrawAll = useCallback(async () => {
     await ensureReady();
 
@@ -178,6 +213,7 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     toError(writeError) ??
     toError(wait.error) ??
     toError(balanceRead.error) ??
+    toError(botEnabledRead.error) ??
     toError(totalDepositsRead.error) ??
     toError(pausedRead.error);
 
@@ -189,6 +225,7 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     isCorrectChain: chainId === requiredChainId,
     balanceWei,
     balanceEth: formatEther(balanceWei),
+    botEnabled: botEnabledRead.data ?? false,
     totalDepositsWei,
     totalDepositsEth: formatEther(totalDepositsWei),
     depositsPaused: pausedRead.data ?? false,
@@ -198,6 +235,8 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     isConfirmed: wait.isSuccess,
     error,
     depositEth,
+    startBot,
+    stopBot,
     withdrawEth,
     withdrawAll,
     refetch

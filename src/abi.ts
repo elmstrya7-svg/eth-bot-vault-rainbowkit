@@ -24,6 +24,13 @@ export const ETH_BOT_VAULT_ABI = [
   },
   {
     type: "function",
+    name: "botEnabled",
+    inputs: [{ name: "user", type: "address", internalType: "address" }],
+    outputs: [{ name: "enabled", type: "bool", internalType: "bool" }],
+    stateMutability: "view"
+  },
+  {
+    type: "function",
     name: "depositsPaused",
     inputs: [],
     outputs: [{ name: "", type: "bool", internalType: "bool" }],
@@ -59,10 +66,36 @@ export const ETH_BOT_VAULT_ABI = [
   },
   {
     type: "function",
+    name: "startBot",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
+    name: "stopBot",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    type: "function",
     name: "withdrawAll",
     inputs: [],
     outputs: [],
     stateMutability: "nonpayable"
+  },
+  {
+    type: "event",
+    name: "BotStarted",
+    inputs: [{ name: "user", type: "address", indexed: true, internalType: "address" }],
+    anonymous: false
+  },
+  {
+    type: "event",
+    name: "BotStopped",
+    inputs: [{ name: "user", type: "address", indexed: true, internalType: "address" }],
+    anonymous: false
   },
   {
     type: "event",
@@ -106,6 +139,11 @@ export const ETH_BOT_VAULT_ABI = [
   {
     type: "error",
     name: "NotOwner",
+    inputs: []
+  },
+  {
+    type: "error",
+    name: "NoVaultBalance",
     inputs: []
   },
   {

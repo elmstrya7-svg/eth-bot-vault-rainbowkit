@@ -56,4 +56,29 @@ describe("EthBotVault", function () {
 
     expect(await vault.balances(alice.address)).to.equal(0n);
   });
+
+  it("lets a funded user start and stop the bot", async function () {
+    const { alice, bob, vault } = await deployVault();
+
+    await expectCustomError(vault.connect(bob).startBot(), "NoVaultBalance");
+
+    await vault.connect(alice).deposit({ value: ethers.parseEther("0.1") });
+    await vault.connect(alice).startBot();
+
+    expect(await vault.botEnabled(alice.address)).to.equal(true);
+    expect(await vault.botEnabled(bob.address)).to.equal(false);
+
+    await vault.connect(alice).stopBot();
+    expect(await vault.botEnabled(alice.address)).to.equal(false);
+  });
+
+  it("stops the bot when a user withdraws", async function () {
+    const { alice, vault } = await deployVault();
+
+    await vault.connect(alice).deposit({ value: ethers.parseEther("0.1") });
+    await vault.connect(alice).startBot();
+    await vault.connect(alice).withdraw(ethers.parseEther("0.01"));
+
+    expect(await vault.botEnabled(alice.address)).to.equal(false);
+  });
 });

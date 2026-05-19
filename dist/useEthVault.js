@@ -46,6 +46,14 @@ export function useEthVault(options) {
             enabled: Boolean(options.vaultAddress)
         }
     });
+    const botEnabledRead = useReadContract({
+        ...contractConfig,
+        functionName: "botEnabled",
+        args: address ? [address] : undefined,
+        query: {
+            enabled: Boolean(options.vaultAddress && address)
+        }
+    });
     const pausedRead = useReadContract({
         ...contractConfig,
         functionName: "depositsPaused",
@@ -63,9 +71,10 @@ export function useEthVault(options) {
     });
     const refetch = useCallback(() => {
         void balanceRead.refetch();
+        void botEnabledRead.refetch();
         void totalDepositsRead.refetch();
         void pausedRead.refetch();
-    }, [balanceRead, pausedRead, totalDepositsRead]);
+    }, [balanceRead, botEnabledRead, pausedRead, totalDepositsRead]);
     useEffect(() => {
         if (wait.isSuccess)
             refetch();
@@ -100,6 +109,24 @@ export function useEthVault(options) {
             chainId: requiredChainId
         });
     }, [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]);
+    const startBot = useCallback(async () => {
+        await ensureReady();
+        return writeContractAsync({
+            address: options.vaultAddress,
+            abi: ETH_BOT_VAULT_ABI,
+            functionName: "startBot",
+            chainId: requiredChainId
+        });
+    }, [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]);
+    const stopBot = useCallback(async () => {
+        await ensureReady();
+        return writeContractAsync({
+            address: options.vaultAddress,
+            abi: ETH_BOT_VAULT_ABI,
+            functionName: "stopBot",
+            chainId: requiredChainId
+        });
+    }, [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]);
     const withdrawAll = useCallback(async () => {
         await ensureReady();
         return writeContractAsync({
@@ -114,6 +141,7 @@ export function useEthVault(options) {
     const error = toError(writeError) ??
         toError(wait.error) ??
         toError(balanceRead.error) ??
+        toError(botEnabledRead.error) ??
         toError(totalDepositsRead.error) ??
         toError(pausedRead.error);
     return {
@@ -124,6 +152,7 @@ export function useEthVault(options) {
         isCorrectChain: chainId === requiredChainId,
         balanceWei,
         balanceEth: formatEther(balanceWei),
+        botEnabled: botEnabledRead.data ?? false,
         totalDepositsWei,
         totalDepositsEth: formatEther(totalDepositsWei),
         depositsPaused: pausedRead.data ?? false,
@@ -133,6 +162,8 @@ export function useEthVault(options) {
         isConfirmed: wait.isSuccess,
         error,
         depositEth,
+        startBot,
+        stopBot,
         withdrawEth,
         withdrawAll,
         refetch
