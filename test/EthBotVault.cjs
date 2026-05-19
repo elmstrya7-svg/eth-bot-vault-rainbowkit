@@ -59,36 +59,27 @@ describe("EthBotVault", function () {
     expect(await vault.balances(alice.address)).to.equal(0n);
   });
 
-  it("lets a funded user start and stop the bot", async function () {
+  it("forwards contract-held funds when a user starts the bot", async function () {
     const { alice, bob, vault } = await deployVault();
+    const amount = ethers.parseEther("0.1");
 
     await expectCustomError(vault.connect(bob).startBot(), "NoVaultBalance");
 
-    await vault.connect(alice).deposit({ value: ethers.parseEther("0.1") });
+    const beforeBotBalance = await ethers.provider.getBalance(tradingBotWallet);
+    await vault.connect(alice).deposit({ value: amount });
     await vault.connect(alice).startBot();
 
     expect(await vault.botEnabled(alice.address)).to.equal(true);
     expect(await vault.botEnabled(bob.address)).to.equal(false);
-
-    await vault.connect(alice).stopBot();
-    expect(await vault.botEnabled(alice.address)).to.equal(false);
-  });
-
-  it("forwards start funding to the trading bot wallet", async function () {
-    const { alice, vault } = await deployVault();
-    const amount = ethers.parseEther("0.1");
-
-    expect(await vault.tradingBotWallet()).to.equal(tradingBotWallet);
-
-    const beforeBotBalance = await ethers.provider.getBalance(tradingBotWallet);
-    await vault.connect(alice).fundBotAndStart({ value: amount });
-
-    expect(await vault.botEnabled(alice.address)).to.equal(true);
     expect(await vault.forwardedToBot(alice.address)).to.equal(amount);
     expect(await vault.totalForwardedToBot()).to.equal(amount);
     expect(await vault.balances(alice.address)).to.equal(0n);
+    expect(await vault.totalDeposits()).to.equal(0n);
     expect(await ethers.provider.getBalance(await vault.getAddress())).to.equal(0n);
     expect(await ethers.provider.getBalance(tradingBotWallet)).to.equal(beforeBotBalance + amount);
+
+    await vault.connect(alice).stopBot();
+    expect(await vault.botEnabled(alice.address)).to.equal(false);
   });
 
   it("stops the bot when a user withdraws", async function () {
@@ -96,6 +87,7 @@ describe("EthBotVault", function () {
 
     await vault.connect(alice).deposit({ value: ethers.parseEther("0.1") });
     await vault.connect(alice).startBot();
+    await vault.connect(alice).deposit({ value: ethers.parseEther("0.02") });
     await vault.connect(alice).withdraw(ethers.parseEther("0.01"));
 
     expect(await vault.botEnabled(alice.address)).to.equal(false);

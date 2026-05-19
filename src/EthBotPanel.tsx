@@ -131,7 +131,6 @@ export function EthBotPanel({
         <Row label="Wallet ETH" value={`${Number(wallet.balanceEth).toFixed(6)} ETH`} />
         <Row label="Contract ETH" value={`${Number(vault.balanceEth).toFixed(6)} ETH`} />
         <Row label="Sent to bot" value={`${Number(bot.forwardedEth).toFixed(6)} ETH`} />
-        <Row label="Bot wallet" value={bot.tradingBotWallet ? `${bot.tradingBotWallet.slice(0, 6)}...${bot.tradingBotWallet.slice(-4)}` : "--"} />
         <Row label="Sent value" value={formatUsd(bot.forwardedUsd)} />
       </div>
 
@@ -146,57 +145,70 @@ export function EthBotPanel({
         </button>
       ) : null}
 
-      <label style={{ display: "grid", gap: 6, fontSize: 14, fontWeight: 700 }}>
-        Fund amount ETH
-        <input
-          inputMode="decimal"
-          min="0"
-          onChange={(event) => setFundAmountEth(event.target.value)}
-          placeholder="0.01"
-          step="any"
-          style={{
-            border: "1px solid #d1d5db",
-            borderRadius: 6,
-            font: "inherit",
-            minHeight: 42,
-            padding: "0 12px"
-          }}
-          type="number"
-          value={fundAmountEth}
-        />
-      </label>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      <div style={{ borderTop: "1px solid #e5e7eb", display: "grid", gap: 10, paddingTop: 14 }}>
+        <h3 style={{ fontSize: 15, lineHeight: 1.2, margin: 0 }}>Fund Contract</h3>
+        <label style={{ display: "grid", gap: 6, fontSize: 14, fontWeight: 700 }}>
+          Amount ETH
+          <input
+            inputMode="decimal"
+            min="0"
+            onChange={(event) => setFundAmountEth(event.target.value)}
+            placeholder="0.01"
+            step="any"
+            style={{
+              border: "1px solid #d1d5db",
+              borderRadius: 6,
+              font: "inherit",
+              minHeight: 42,
+              padding: "0 12px"
+            }}
+            type="number"
+            value={fundAmountEth}
+          />
+        </label>
         <button
-          disabled={!canUseVault || vault.depositsPaused || bot.isRunning}
-          onClick={() => void runAction("fundBotAndStart", () => vault.fundBotAndStart(fundAmountEth))}
-          style={{ ...buttonStyle, opacity: canUseVault && !vault.depositsPaused && !bot.isRunning ? 1 : 0.5 }}
+          disabled={!canUseVault || vault.depositsPaused}
+          onClick={() => void runAction("deposit", () => vault.depositEth(fundAmountEth))}
+          style={{ ...buttonStyle, opacity: canUseVault && !vault.depositsPaused ? 1 : 0.5 }}
           type="button"
         >
-          Start Bot & Fund ETH
-        </button>
-        <button
-          disabled={!canUseVault || !bot.isRunning}
-          onClick={() => void runAction("stopBot", vault.stopBot)}
-          style={{ ...buttonStyle, opacity: canUseVault && bot.isRunning ? 1 : 0.5 }}
-          type="button"
-        >
-          Stop Bot
+          Fund Contract
         </button>
       </div>
 
-      <button
-        disabled={!canUseVault || vault.balanceWei === 0n}
-        onClick={() => void runAction("withdrawAll", vault.withdrawAll)}
-        style={{ ...secondaryButtonStyle, opacity: canUseVault && vault.balanceWei > 0n ? 1 : 0.5 }}
-        type="button"
-      >
-        Withdraw ETH
-      </button>
+      <div style={{ borderTop: "1px solid #e5e7eb", display: "grid", gap: 10, paddingTop: 14 }}>
+        <h3 style={{ fontSize: 15, lineHeight: 1.2, margin: 0 }}>Bot Controls</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <button
+            disabled={!canUseVault || bot.isRunning || vault.balanceWei === 0n}
+            onClick={() => void runAction("startBot", vault.startBot)}
+            style={{ ...buttonStyle, opacity: canUseVault && !bot.isRunning && vault.balanceWei > 0n ? 1 : 0.5 }}
+            type="button"
+          >
+            Start Bot
+          </button>
+          <button
+            disabled={!canUseVault || !bot.isRunning}
+            onClick={() => void runAction("stopBot", vault.stopBot)}
+            style={{ ...buttonStyle, opacity: canUseVault && bot.isRunning ? 1 : 0.5 }}
+            type="button"
+          >
+            Stop Bot
+          </button>
+        </div>
+        <button
+          disabled={!canUseVault || vault.balanceWei === 0n}
+          onClick={() => void runAction("withdrawAll", vault.withdrawAll)}
+          style={{ ...secondaryButtonStyle, opacity: canUseVault && vault.balanceWei > 0n ? 1 : 0.5 }}
+          type="button"
+        >
+          Withdraw Contract ETH
+        </button>
+      </div>
 
       <div style={{ color: "#6b7280", fontSize: 13, lineHeight: 1.4 }}>
-        Start Bot sends the chosen ETH amount from this contract to the trading bot wallet. Contract withdrawal only
-        applies to ETH still held in the contract.
+        Fund Contract holds ETH in the vault. Start Bot forwards the contract-held ETH for the connected wallet.
+        Withdraw applies only to ETH still held in the contract.
       </div>
 
       {vault.pendingHash ? (

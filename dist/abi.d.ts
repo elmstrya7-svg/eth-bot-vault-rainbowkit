@@ -1,259 +1,228 @@
 export declare const ETH_BOT_VAULT_ABI: readonly [{
-    readonly type: "constructor";
     readonly inputs: readonly [];
     readonly stateMutability: "nonpayable";
+    readonly type: "constructor";
 }, {
-    readonly type: "receive";
-    readonly stateMutability: "payable";
+    readonly inputs: readonly [];
+    readonly name: "DepositsPaused";
+    readonly type: "error";
 }, {
-    readonly type: "function";
-    readonly name: "balances";
+    readonly inputs: readonly [];
+    readonly name: "EthTransferFailed";
+    readonly type: "error";
+}, {
+    readonly inputs: readonly [];
+    readonly name: "InsufficientBalance";
+    readonly type: "error";
+}, {
+    readonly inputs: readonly [];
+    readonly name: "NoVaultBalance";
+    readonly type: "error";
+}, {
+    readonly inputs: readonly [];
+    readonly name: "NotOwner";
+    readonly type: "error";
+}, {
+    readonly inputs: readonly [];
+    readonly name: "ReentrantCall";
+    readonly type: "error";
+}, {
+    readonly inputs: readonly [];
+    readonly name: "ZeroAmount";
+    readonly type: "error";
+}, {
+    readonly anonymous: false;
     readonly inputs: readonly [{
+        readonly indexed: true;
+        readonly internalType: "address";
         readonly name: "user";
         readonly type: "address";
-        readonly internalType: "address";
+    }, {
+        readonly indexed: false;
+        readonly internalType: "uint256";
+        readonly name: "amount";
+        readonly type: "uint256";
     }];
+    readonly name: "BotStarted";
+    readonly type: "event";
+}, {
+    readonly anonymous: false;
+    readonly inputs: readonly [{
+        readonly indexed: true;
+        readonly internalType: "address";
+        readonly name: "user";
+        readonly type: "address";
+    }];
+    readonly name: "BotStopped";
+    readonly type: "event";
+}, {
+    readonly anonymous: false;
+    readonly inputs: readonly [{
+        readonly indexed: true;
+        readonly internalType: "address";
+        readonly name: "user";
+        readonly type: "address";
+    }, {
+        readonly indexed: false;
+        readonly internalType: "uint256";
+        readonly name: "amount";
+        readonly type: "uint256";
+    }];
+    readonly name: "Deposited";
+    readonly type: "event";
+}, {
+    readonly anonymous: false;
+    readonly inputs: readonly [{
+        readonly indexed: false;
+        readonly internalType: "bool";
+        readonly name: "paused";
+        readonly type: "bool";
+    }];
+    readonly name: "DepositsPausedSet";
+    readonly type: "event";
+}, {
+    readonly anonymous: false;
+    readonly inputs: readonly [{
+        readonly indexed: true;
+        readonly internalType: "address";
+        readonly name: "user";
+        readonly type: "address";
+    }, {
+        readonly indexed: false;
+        readonly internalType: "uint256";
+        readonly name: "amount";
+        readonly type: "uint256";
+    }];
+    readonly name: "Withdrawn";
+    readonly type: "event";
+}, {
+    readonly inputs: readonly [{
+        readonly internalType: "address";
+        readonly name: "user";
+        readonly type: "address";
+    }];
+    readonly name: "balances";
     readonly outputs: readonly [{
+        readonly internalType: "uint256";
         readonly name: "balance";
         readonly type: "uint256";
-        readonly internalType: "uint256";
     }];
     readonly stateMutability: "view";
-}, {
     readonly type: "function";
-    readonly name: "deposit";
-    readonly inputs: readonly [];
-    readonly outputs: readonly [];
-    readonly stateMutability: "payable";
 }, {
-    readonly type: "function";
-    readonly name: "forwardedToBot";
     readonly inputs: readonly [{
+        readonly internalType: "address";
         readonly name: "user";
         readonly type: "address";
-        readonly internalType: "address";
     }];
-    readonly outputs: readonly [{
-        readonly name: "amount";
-        readonly type: "uint256";
-        readonly internalType: "uint256";
-    }];
-    readonly stateMutability: "view";
-}, {
-    readonly type: "function";
-    readonly name: "fundBotAndStart";
-    readonly inputs: readonly [];
-    readonly outputs: readonly [];
-    readonly stateMutability: "payable";
-}, {
-    readonly type: "function";
     readonly name: "botEnabled";
-    readonly inputs: readonly [{
-        readonly name: "user";
-        readonly type: "address";
-        readonly internalType: "address";
-    }];
     readonly outputs: readonly [{
+        readonly internalType: "bool";
         readonly name: "enabled";
         readonly type: "bool";
-        readonly internalType: "bool";
     }];
     readonly stateMutability: "view";
-}, {
     readonly type: "function";
+}, {
+    readonly inputs: readonly [];
+    readonly name: "deposit";
+    readonly outputs: readonly [];
+    readonly stateMutability: "payable";
+    readonly type: "function";
+}, {
+    readonly inputs: readonly [];
     readonly name: "depositsPaused";
-    readonly inputs: readonly [];
     readonly outputs: readonly [{
+        readonly internalType: "bool";
         readonly name: "";
         readonly type: "bool";
-        readonly internalType: "bool";
     }];
     readonly stateMutability: "view";
-}, {
     readonly type: "function";
+}, {
+    readonly inputs: readonly [{
+        readonly internalType: "address";
+        readonly name: "user";
+        readonly type: "address";
+    }];
+    readonly name: "forwardedToBot";
+    readonly outputs: readonly [{
+        readonly internalType: "uint256";
+        readonly name: "amount";
+        readonly type: "uint256";
+    }];
+    readonly stateMutability: "view";
+    readonly type: "function";
+}, {
+    readonly inputs: readonly [];
     readonly name: "owner";
-    readonly inputs: readonly [];
     readonly outputs: readonly [{
+        readonly internalType: "address";
         readonly name: "";
         readonly type: "address";
-        readonly internalType: "address";
     }];
     readonly stateMutability: "view";
-}, {
     readonly type: "function";
+}, {
+    readonly inputs: readonly [{
+        readonly internalType: "bool";
+        readonly name: "paused";
+        readonly type: "bool";
+    }];
     readonly name: "setDepositsPaused";
-    readonly inputs: readonly [{
-        readonly name: "paused";
-        readonly type: "bool";
-        readonly internalType: "bool";
-    }];
     readonly outputs: readonly [];
     readonly stateMutability: "nonpayable";
-}, {
     readonly type: "function";
-    readonly name: "totalDeposits";
+}, {
     readonly inputs: readonly [];
-    readonly outputs: readonly [{
-        readonly name: "";
-        readonly type: "uint256";
-        readonly internalType: "uint256";
-    }];
-    readonly stateMutability: "view";
-}, {
-    readonly type: "function";
-    readonly name: "totalForwardedToBot";
-    readonly inputs: readonly [];
-    readonly outputs: readonly [{
-        readonly name: "";
-        readonly type: "uint256";
-        readonly internalType: "uint256";
-    }];
-    readonly stateMutability: "view";
-}, {
-    readonly type: "function";
-    readonly name: "tradingBotWallet";
-    readonly inputs: readonly [];
-    readonly outputs: readonly [{
-        readonly name: "";
-        readonly type: "address";
-        readonly internalType: "address payable";
-    }];
-    readonly stateMutability: "view";
-}, {
-    readonly type: "function";
-    readonly name: "withdraw";
-    readonly inputs: readonly [{
-        readonly name: "amount";
-        readonly type: "uint256";
-        readonly internalType: "uint256";
-    }];
-    readonly outputs: readonly [];
-    readonly stateMutability: "nonpayable";
-}, {
-    readonly type: "function";
     readonly name: "startBot";
-    readonly inputs: readonly [];
     readonly outputs: readonly [];
     readonly stateMutability: "nonpayable";
-}, {
     readonly type: "function";
+}, {
+    readonly inputs: readonly [];
     readonly name: "stopBot";
-    readonly inputs: readonly [];
     readonly outputs: readonly [];
     readonly stateMutability: "nonpayable";
-}, {
     readonly type: "function";
-    readonly name: "withdrawAll";
+}, {
     readonly inputs: readonly [];
+    readonly name: "totalDeposits";
+    readonly outputs: readonly [{
+        readonly internalType: "uint256";
+        readonly name: "";
+        readonly type: "uint256";
+    }];
+    readonly stateMutability: "view";
+    readonly type: "function";
+}, {
+    readonly inputs: readonly [];
+    readonly name: "totalForwardedToBot";
+    readonly outputs: readonly [{
+        readonly internalType: "uint256";
+        readonly name: "";
+        readonly type: "uint256";
+    }];
+    readonly stateMutability: "view";
+    readonly type: "function";
+}, {
+    readonly inputs: readonly [{
+        readonly internalType: "uint256";
+        readonly name: "amount";
+        readonly type: "uint256";
+    }];
+    readonly name: "withdraw";
     readonly outputs: readonly [];
     readonly stateMutability: "nonpayable";
+    readonly type: "function";
 }, {
-    readonly type: "event";
-    readonly name: "BotFundedAndStarted";
-    readonly inputs: readonly [{
-        readonly name: "user";
-        readonly type: "address";
-        readonly indexed: true;
-        readonly internalType: "address";
-    }, {
-        readonly name: "tradingBotWallet";
-        readonly type: "address";
-        readonly indexed: true;
-        readonly internalType: "address";
-    }, {
-        readonly name: "amount";
-        readonly type: "uint256";
-        readonly indexed: false;
-        readonly internalType: "uint256";
-    }];
-    readonly anonymous: false;
-}, {
-    readonly type: "event";
-    readonly name: "BotStarted";
-    readonly inputs: readonly [{
-        readonly name: "user";
-        readonly type: "address";
-        readonly indexed: true;
-        readonly internalType: "address";
-    }];
-    readonly anonymous: false;
-}, {
-    readonly type: "event";
-    readonly name: "BotStopped";
-    readonly inputs: readonly [{
-        readonly name: "user";
-        readonly type: "address";
-        readonly indexed: true;
-        readonly internalType: "address";
-    }];
-    readonly anonymous: false;
-}, {
-    readonly type: "event";
-    readonly name: "Deposited";
-    readonly inputs: readonly [{
-        readonly name: "user";
-        readonly type: "address";
-        readonly indexed: true;
-        readonly internalType: "address";
-    }, {
-        readonly name: "amount";
-        readonly type: "uint256";
-        readonly indexed: false;
-        readonly internalType: "uint256";
-    }];
-    readonly anonymous: false;
-}, {
-    readonly type: "event";
-    readonly name: "DepositsPausedSet";
-    readonly inputs: readonly [{
-        readonly name: "paused";
-        readonly type: "bool";
-        readonly indexed: false;
-        readonly internalType: "bool";
-    }];
-    readonly anonymous: false;
-}, {
-    readonly type: "event";
-    readonly name: "Withdrawn";
-    readonly inputs: readonly [{
-        readonly name: "user";
-        readonly type: "address";
-        readonly indexed: true;
-        readonly internalType: "address";
-    }, {
-        readonly name: "amount";
-        readonly type: "uint256";
-        readonly indexed: false;
-        readonly internalType: "uint256";
-    }];
-    readonly anonymous: false;
-}, {
-    readonly type: "error";
-    readonly name: "DepositsPaused";
     readonly inputs: readonly [];
+    readonly name: "withdrawAll";
+    readonly outputs: readonly [];
+    readonly stateMutability: "nonpayable";
+    readonly type: "function";
 }, {
-    readonly type: "error";
-    readonly name: "EthTransferFailed";
-    readonly inputs: readonly [];
-}, {
-    readonly type: "error";
-    readonly name: "InsufficientBalance";
-    readonly inputs: readonly [];
-}, {
-    readonly type: "error";
-    readonly name: "NotOwner";
-    readonly inputs: readonly [];
-}, {
-    readonly type: "error";
-    readonly name: "NoVaultBalance";
-    readonly inputs: readonly [];
-}, {
-    readonly type: "error";
-    readonly name: "ReentrantCall";
-    readonly inputs: readonly [];
-}, {
-    readonly type: "error";
-    readonly name: "ZeroAmount";
-    readonly inputs: readonly [];
+    readonly stateMutability: "payable";
+    readonly type: "receive";
 }];
 //# sourceMappingURL=abi.d.ts.map

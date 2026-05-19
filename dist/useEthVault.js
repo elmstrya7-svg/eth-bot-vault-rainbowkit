@@ -69,13 +69,6 @@ export function useEthVault(options) {
             enabled: Boolean(options.vaultAddress)
         }
     });
-    const tradingBotWalletRead = useReadContract({
-        ...contractConfig,
-        functionName: "tradingBotWallet",
-        query: {
-            enabled: Boolean(options.vaultAddress)
-        }
-    });
     const pausedRead = useReadContract({
         ...contractConfig,
         functionName: "depositsPaused",
@@ -133,17 +126,6 @@ export function useEthVault(options) {
             chainId: requiredChainId
         });
     }, [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]);
-    const fundBotAndStart = useCallback(async (amountEth) => {
-        await ensureReady();
-        const value = validateAmount(amountEth);
-        return writeContractAsync({
-            address: options.vaultAddress,
-            abi: ETH_BOT_VAULT_ABI,
-            functionName: "fundBotAndStart",
-            value,
-            chainId: requiredChainId
-        });
-    }, [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]);
     const startBot = useCallback(async () => {
         await ensureReady();
         return writeContractAsync({
@@ -180,7 +162,6 @@ export function useEthVault(options) {
         toError(forwardedToBotRead.error) ??
         toError(totalDepositsRead.error) ??
         toError(totalForwardedToBotRead.error) ??
-        toError(tradingBotWalletRead.error) ??
         toError(pausedRead.error);
     const forwardedToBotWei = forwardedToBotRead.data ?? 0n;
     const totalForwardedToBotWei = totalForwardedToBotRead.data ?? 0n;
@@ -199,7 +180,6 @@ export function useEthVault(options) {
         totalDepositsEth: formatEther(totalDepositsWei),
         totalForwardedToBotWei,
         totalForwardedToBotEth: formatEther(totalForwardedToBotWei),
-        tradingBotWallet: tradingBotWalletRead.data,
         depositsPaused: pausedRead.data ?? false,
         pendingHash,
         isWritePending,
@@ -207,7 +187,6 @@ export function useEthVault(options) {
         isConfirmed: wait.isSuccess,
         error,
         depositEth,
-        fundBotAndStart,
         startBot,
         stopBot,
         withdrawEth,

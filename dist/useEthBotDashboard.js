@@ -25,7 +25,6 @@ export function useEthBotDashboard(options) {
             fundedUsd: ethPrice > 0 && Number.isFinite(vaultBalance) ? vaultBalance * ethPrice : null,
             forwardedEth: vault.forwardedToBotEth,
             forwardedUsd: ethPrice > 0 && Number.isFinite(Number(vault.forwardedToBotEth)) ? Number(vault.forwardedToBotEth) * ethPrice : null,
-            tradingBotWallet: vault.tradingBotWallet,
             walletEth: wallet.balanceEth,
             walletUsd: ethPrice > 0 && Number.isFinite(walletBalance) ? walletBalance * ethPrice : null
         }

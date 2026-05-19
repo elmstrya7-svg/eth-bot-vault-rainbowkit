@@ -11,7 +11,7 @@ import {
 import { mainnet } from "wagmi/chains";
 import { ETH_BOT_VAULT_ABI } from "./abi.js";
 
-export type EthVaultAction = "deposit" | "withdraw" | "withdrawAll" | "startBot" | "fundBotAndStart" | "stopBot";
+export type EthVaultAction = "deposit" | "withdraw" | "withdrawAll" | "startBot" | "stopBot";
 
 export type UseEthVaultOptions = {
   vaultAddress?: Address;
@@ -34,7 +34,6 @@ export type UseEthVaultResult = {
   totalDepositsEth: string;
   totalForwardedToBotWei: bigint;
   totalForwardedToBotEth: string;
-  tradingBotWallet?: Address;
   depositsPaused: boolean;
   pendingHash?: Hash;
   isWritePending: boolean;
@@ -42,7 +41,6 @@ export type UseEthVaultResult = {
   isConfirmed: boolean;
   error?: Error;
   depositEth: (amountEth: string) => Promise<Hash>;
-  fundBotAndStart: (amountEth: string) => Promise<Hash>;
   startBot: () => Promise<Hash>;
   stopBot: () => Promise<Hash>;
   withdrawEth: (amountEth: string) => Promise<Hash>;
@@ -131,14 +129,6 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     }
   });
 
-  const tradingBotWalletRead = useReadContract({
-    ...contractConfig,
-    functionName: "tradingBotWallet",
-    query: {
-      enabled: Boolean(options.vaultAddress)
-    }
-  });
-
   const pausedRead = useReadContract({
     ...contractConfig,
     functionName: "depositsPaused",
@@ -207,22 +197,6 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]
   );
 
-  const fundBotAndStart = useCallback(
-    async (amountEth: string) => {
-      await ensureReady();
-      const value = validateAmount(amountEth);
-
-      return writeContractAsync({
-        address: options.vaultAddress!,
-        abi: ETH_BOT_VAULT_ABI,
-        functionName: "fundBotAndStart",
-        value,
-        chainId: requiredChainId
-      });
-    },
-    [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]
-  );
-
   const startBot = useCallback(async () => {
     await ensureReady();
 
@@ -266,7 +240,6 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     toError(forwardedToBotRead.error) ??
     toError(totalDepositsRead.error) ??
     toError(totalForwardedToBotRead.error) ??
-    toError(tradingBotWalletRead.error) ??
     toError(pausedRead.error);
 
   const forwardedToBotWei = forwardedToBotRead.data ?? 0n;
@@ -287,7 +260,6 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     totalDepositsEth: formatEther(totalDepositsWei),
     totalForwardedToBotWei,
     totalForwardedToBotEth: formatEther(totalForwardedToBotWei),
-    tradingBotWallet: tradingBotWalletRead.data,
     depositsPaused: pausedRead.data ?? false,
     pendingHash,
     isWritePending,
@@ -295,7 +267,6 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     isConfirmed: wait.isSuccess,
     error,
     depositEth,
-    fundBotAndStart,
     startBot,
     stopBot,
     withdrawEth,
