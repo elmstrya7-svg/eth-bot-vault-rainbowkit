@@ -1,6 +1,6 @@
 {
   "name": "eth-bot-vault-rainbowkit",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Minimal ETH deposit and withdrawal vault components for RainbowKit/wagmi apps.",
   "license": "MIT",
   "type": "module",

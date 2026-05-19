@@ -6,6 +6,7 @@ export type EthBotPanelProps = {
     className?: string;
     title?: string;
     onSubmitted?: (hash: string, action: EthVaultAction) => void;
+    onVaultDeployed?: (address: Address) => void;
 };
-export declare function EthBotPanel({ vaultAddress, chainId, className, title, onSubmitted }: EthBotPanelProps): import("react/jsx-runtime").JSX.Element;
+export declare function EthBotPanel({ vaultAddress, chainId, className, title, onSubmitted, onVaultDeployed }: EthBotPanelProps): import("react/jsx-runtime").JSX.Element;
 //# sourceMappingURL=EthBotPanel.d.ts.map

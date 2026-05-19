@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import type { Address } from "viem";
 import { mainnet } from "wagmi/chains";
 import { useEthBotDashboard } from "./useEthBotDashboard.js";
@@ -10,6 +10,7 @@ export type EthBotPanelProps = {
   className?: string;
   title?: string;
   onSubmitted?: (hash: string, action: EthVaultAction) => void;
+  onVaultDeployed?: (address: Address) => void;
 };
 
 const usdFormatter = new Intl.NumberFormat("en-US", {
@@ -45,25 +46,37 @@ export function EthBotPanel({
   chainId = mainnet.id,
   className,
   title = "EtherTrade Bot",
-  onSubmitted
+  onSubmitted,
+  onVaultDeployed
 }: EthBotPanelProps) {
   const [fundAmountEth, setFundAmountEth] = useState("0.01");
   const [localError, setLocalError] = useState<string>();
   const dashboard = useEthBotDashboard({ vaultAddress, chainId });
-  const { bot, price, vault, wallet } = dashboard;
-  const isBusy = vault.isWritePending || vault.isConfirming;
+  const { bot, deployment, price, vault, wallet } = dashboard;
+  const effectiveVaultAddress = vaultAddress ?? deployment.vaultAddress;
+  const isBusy = vault.isWritePending || vault.isConfirming || deployment.isDeployPending || deployment.isDeploying;
 
   const status = useMemo(() => {
-    if (!vaultAddress) return "Vault address missing";
+    if (!effectiveVaultAddress) return deployment.isDeploying ? "Deploying vault" : "Deploy vault";
     if (!vault.isConnected) return "Connect wallet";
     if (!vault.isCorrectChain) return "Switch to Ethereum mainnet";
     if (isBusy) return vault.isWritePending ? "Confirm in wallet" : "Waiting for confirmation";
     if (bot.isRunning) return "Bot running";
     if (bot.isFunded) return "Funded, ready to start";
     return "Ready to fund";
-  }, [bot.isFunded, bot.isRunning, isBusy, vault.isConnected, vault.isCorrectChain, vault.isWritePending, vaultAddress]);
+  }, [
+    bot.isFunded,
+    bot.isRunning,
+    deployment.isDeploying,
+    effectiveVaultAddress,
+    isBusy,
+    vault.isConnected,
+    vault.isCorrectChain,
+    vault.isWritePending
+  ]);
 
-  const canUseVault = Boolean(vaultAddress) && vault.isConnected && vault.isCorrectChain && !isBusy;
+  const canDeploy = !effectiveVaultAddress && deployment.isConnected && !isBusy;
+  const canUseVault = Boolean(effectiveVaultAddress) && vault.isConnected && vault.isCorrectChain && !isBusy;
 
   async function runAction(action: EthVaultAction, task: () => Promise<string>) {
     setLocalError(undefined);
@@ -75,6 +88,22 @@ export function EthBotPanel({
       setLocalError(error instanceof Error ? error.message : String(error));
     }
   }
+
+  async function deployVault() {
+    setLocalError(undefined);
+
+    try {
+      await deployment.deployVault();
+    } catch (error) {
+      setLocalError(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  useEffect(() => {
+    if (deployment.vaultAddress && !vaultAddress) {
+      onVaultDeployed?.(deployment.vaultAddress);
+    }
+  }, [deployment.vaultAddress, onVaultDeployed, vaultAddress]);
 
   return (
     <section
@@ -95,6 +124,7 @@ export function EthBotPanel({
       </header>
 
       <div style={{ display: "grid", gap: 8 }}>
+        <Row label="Vault contract" value={effectiveVaultAddress ? `${effectiveVaultAddress.slice(0, 6)}...${effectiveVaultAddress.slice(-4)}` : "Not deployed"} />
         <Row label="ETH / USDT" value={price.priceText} />
         <Row label="24h change" value={price.changePercent24hText} />
         <Row label="Ticker" value={`${price.source} ${price.status}`} />
@@ -104,6 +134,17 @@ export function EthBotPanel({
         <Row label="Bot wallet" value={bot.tradingBotWallet ? `${bot.tradingBotWallet.slice(0, 6)}...${bot.tradingBotWallet.slice(-4)}` : "--"} />
         <Row label="Sent value" value={formatUsd(bot.forwardedUsd)} />
       </div>
+
+      {!effectiveVaultAddress ? (
+        <button
+          disabled={!canDeploy}
+          onClick={() => void deployVault()}
+          style={{ ...buttonStyle, opacity: canDeploy ? 1 : 0.5 }}
+          type="button"
+        >
+          Deploy Vault Contract
+        </button>
+      ) : null}
 
       <label style={{ display: "grid", gap: 6, fontSize: 14, fontWeight: 700 }}>
         Fund amount ETH
@@ -169,9 +210,9 @@ export function EthBotPanel({
         </a>
       ) : null}
 
-      {localError || vault.error || price.error || wallet.error ? (
+      {localError || deployment.error || vault.error || price.error || wallet.error ? (
         <div style={{ color: "#b91c1c", fontSize: 14 }}>
-          {localError ?? vault.error?.message ?? price.error ?? wallet.error?.message}
+          {localError ?? deployment.error?.message ?? vault.error?.message ?? price.error ?? wallet.error?.message}
         </div>
       ) : null}
     </section>

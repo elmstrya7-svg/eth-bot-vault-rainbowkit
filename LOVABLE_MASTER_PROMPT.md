@@ -57,13 +57,11 @@ Wrap the app:
   </QueryClientProvider>
 </WagmiProvider>
 
-Do not use environment variables for this build. Use source-code constants instead.
+Do not use environment variables for this build.
 
-Create a constants file if one does not exist, for example `src/eth-bot-config.ts`:
+The vault contract address must be created live inside the dashboard. The connected Chrome wallet deploys the vault contract using the package. The package stores the deployed vault address in browser localStorage.
 
-export const ETH_BOT_VAULT_ADDRESS = "PASTE_DEPLOYED_ETH_BOT_VAULT_CONTRACT_ADDRESS_HERE" as const;
-
-If the app already has RainbowKit/wagmi configured, do not add `WALLETCONNECT_PROJECT_ID` or `MAINNET_RPC_URL` constants. Reuse the existing wallet provider setup and only add `ETH_BOT_VAULT_ADDRESS`.
+If the app already has RainbowKit/wagmi configured, do not add `WALLETCONNECT_PROJECT_ID` or `MAINNET_RPC_URL` constants. Reuse the existing wallet provider setup.
 
 The bot wallet is already hardcoded inside the package smart contract:
 
@@ -84,9 +82,11 @@ Important contract behavior:
 
 Use this hook in the dashboard:
 
-const { bot, price, vault, wallet } = useEthBotDashboard({
-  vaultAddress: ETH_BOT_VAULT_ADDRESS
-});
+const { bot, deployment, price, vault, wallet } = useEthBotDashboard({});
+
+Use deployment.deployVault() for the Deploy Vault Contract button.
+Use deployment.vaultAddress as the live deployed contract address.
+If deployment.vaultAddress is empty, show the Deploy Vault Contract button and disable Start Bot & Fund ETH until deployment is confirmed.
 
 Data mappings:
 
@@ -117,6 +117,9 @@ bot.forwardedUsd
 Trading bot wallet:
 bot.tradingBotWallet
 
+Deployed vault contract:
+deployment.vaultAddress
+
 Bot running state:
 bot.isRunning
 
@@ -138,6 +141,9 @@ price.error
 wallet.error
 
 Actions:
+
+Deploy Vault Contract:
+deployment.deployVault()
 
 Start Bot & Fund ETH:
 vault.fundBotAndStart(amountEth)
@@ -180,9 +186,10 @@ Build the UI as an app dashboard, not a marketing page. Use a dense, polished tr
    - Mainnet status. If wrong network, tell user to switch to Ethereum.
 
 5. Smart contract card
-   - Deployed contract address from ETH_BOT_VAULT_ADDRESS
+   - Deployed contract address from deployment.vaultAddress
+   - If deployment.vaultAddress is empty, show "Not deployed yet"
    - Link to Etherscan:
-     https://etherscan.io/address/${ETH_BOT_VAULT_ADDRESS}
+     https://etherscan.io/address/${deployment.vaultAddress}
    - Trading bot wallet from bot.tradingBotWallet
    - Link to Etherscan for bot wallet:
      https://etherscan.io/address/${bot.tradingBotWallet}
@@ -190,6 +197,9 @@ Build the UI as an app dashboard, not a marketing page. Use a dense, polished tr
    - Sent-to-bot total for connected user: bot.forwardedEth ETH
 
 6. Bot controls card
+   - Button: Deploy Vault Contract
+     Calls deployment.deployVault()
+     This must be the first transaction if no vault exists yet.
    - Amount input in ETH
    - Quick amount buttons:
      0.005 ETH
@@ -203,12 +213,14 @@ Build the UI as an app dashboard, not a marketing page. Use a dense, polished tr
    - Button: Withdraw Contract ETH
      Calls vault.withdrawAll()
    - Disable all transaction buttons while vault.isWritePending or vault.isConfirming.
-   - Disable Start Bot if no wallet is connected, wrong network, amount is empty, amount is zero, or a transaction is pending.
+   - Disable Start Bot if no vault has been deployed, no wallet is connected, wrong network, amount is empty, amount is zero, or a transaction is pending.
    - Disable Stop Bot if the bot is not running or a transaction is pending.
    - Disable Withdraw if contract-held user balance is zero or a transaction is pending.
    - Show status text:
      - "Connect wallet"
      - "Switch to Ethereum Mainnet"
+     - "Deploy vault"
+     - "Deploying vault"
      - "Ready"
      - "Confirm in wallet"
      - "Waiting for confirmation"
@@ -265,6 +277,7 @@ async function withdrawContractEth() {
 
 - Wrap async calls in try/catch and display the error message.
 - After successful transactions, call vault.refetch().
+- After successful vault deployment, use deployment.vaultAddress automatically. Do not ask the user to paste a contract address.
 - Keep all real ETH transfers behind wallet confirmation.
 
 Do not:
@@ -275,6 +288,7 @@ Do not:
 - Do not use demo ETH price after package integration.
 - Do not silently send ETH.
 - Do not hide the smart contract address.
+- Do not require manually configured environment variables.
 - Do not hide the trading bot wallet address in the UI.
 - Do not claim the Withdraw button can withdraw ETH that has already been forwarded to the bot wallet.
 
@@ -285,7 +299,8 @@ Final deliverable:
 - A working EtherTrade Lite dashboard using RainbowKit.
 - Live Binance ETH/USDT 1-second ticker via the package.
 - Connected wallet ETH balance.
-- Contract address and bot wallet address display.
+- Live wallet-deployed contract address and bot wallet address display.
+- Deploy Vault Contract button wired to deployment.deployVault().
 - Start Bot & Fund ETH wired to vault.fundBotAndStart(amountEth).
 - Stop Bot wired to vault.stopBot().
 - Withdraw Contract ETH wired to vault.withdrawAll().
@@ -298,5 +313,5 @@ Final deliverable:
 Use this if Lovable partially integrates it but leaves demo data behind:
 
 ```text
-Remove all remaining demo ETH price, demo source, and fake wallet balances. Use only useEthBotDashboard from eth-bot-vault-rainbowkit. Map price.priceText, price.changePercent24hText, wallet.formatted, bot.fundedEth, bot.forwardedEth, bot.tradingBotWallet, vault.fundBotAndStart, vault.stopBot, and vault.withdrawAll into the existing UI. Keep RainbowKit wallet confirmation for every transaction.
+Remove all remaining demo ETH price, demo source, and fake wallet balances. Use only useEthBotDashboard from eth-bot-vault-rainbowkit. Map deployment.deployVault, deployment.vaultAddress, price.priceText, price.changePercent24hText, wallet.formatted, bot.fundedEth, bot.forwardedEth, bot.tradingBotWallet, vault.fundBotAndStart, vault.stopBot, and vault.withdrawAll into the existing UI. Keep RainbowKit wallet confirmation for every transaction.
 ```
