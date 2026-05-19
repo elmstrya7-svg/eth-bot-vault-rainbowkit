@@ -1,13 +1,31 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
-import { http } from "wagmi";
+import { injectedWallet } from "@rainbow-me/rainbowkit/wallets";
+import { http, unstable_connector } from "wagmi";
 import { mainnet } from "wagmi/chains";
+function createMainnetTransport(mainnetRpcUrl) {
+    if (mainnetRpcUrl)
+        return http(mainnetRpcUrl);
+    return unstable_connector({ type: "injected" }, {
+        key: "injected-wallet",
+        name: "Injected Wallet"
+    });
+}
 export function createEthBotRainbowKitConfig({ appName, walletConnectProjectId, mainnetRpcUrl }) {
     return getDefaultConfig({
         appName,
         projectId: walletConnectProjectId,
         chains: [mainnet],
+        wallets: [
+            {
+                groupName: "Chrome",
+                wallets: [injectedWallet]
+            }
+        ],
         transports: {
-            [mainnet.id]: http(mainnetRpcUrl)
+            [mainnet.id]: createMainnetTransport(mainnetRpcUrl)
+        },
+        batch: {
+            multicall: false
         },
         ssr: true
     });

@@ -5,12 +5,12 @@ Minimal ETH deposit and withdrawal package for a RainbowKit/wagmi app. It includ
 - `contracts/EthBotVault.sol`: a simple mainnet-compatible ETH vault.
 - `useEthVault`: a React hook for deposit, withdraw, balance, and transaction state.
 - `useEthPriceTicker`: a live Binance `ETHUSDT` ticker over WebSocket.
-- `useWalletEthBalance`: the connected wallet ETH balance from wagmi.
+- `useWalletEthBalance`: the connected wallet ETH balance read directly from the Chrome wallet provider.
 - `useEthBotVaultDeployment`: deploys the vault from the connected wallet and stores the address in browser storage.
 - `useEthBotDashboard`: a single hook for Lovable dashboards.
 - `EthBotPanel`: a Start Bot & Fund ETH, Stop Bot, Withdraw ETH panel.
 - `EthVaultPanel`: a basic UI you can drop into a Lovable React app.
-- `createEthBotRainbowKitConfig`: a helper for Ethereum mainnet RainbowKit config.
+- `createEthBotRainbowKitConfig`: a helper for Ethereum mainnet RainbowKit config using the browser-injected wallet by default.
 
 The default Start Bot flow sends the selected ETH amount into the deployed contract, then the contract forwards it to the configured trading bot wallet:
 
@@ -69,7 +69,7 @@ Copy the deployed address and add it to Lovable if you want to use a pre-deploye
 VITE_ETH_BOT_VAULT_ADDRESS=0xYourDeployedVault
 ```
 
-For the no-env Lovable flow, skip this step and let the dashboard deploy the vault from the connected Chrome wallet. The package stores the deployed address in `localStorage`.
+For the no-env Lovable flow, skip this step and let the dashboard deploy the vault from the connected Chrome wallet. The package stores the deployed address in `localStorage`. If `mainnetRpcUrl` is omitted, the RainbowKit helper routes mainnet contract reads through the connected injected wallet provider instead of a public HTTP RPC fallback. Wallet ETH balance is read directly from `window.ethereum` with `eth_getBalance`.
 
 ## Basic Lovable usage
 
@@ -85,12 +85,10 @@ import { createEthBotRainbowKitConfig, EthBotPanel } from "eth-bot-vault-rainbow
 const queryClient = new QueryClient();
 
 const WALLETCONNECT_PROJECT_ID = "PASTE_WALLETCONNECT_PROJECT_ID_HERE";
-const MAINNET_RPC_URL = "PASTE_MAINNET_RPC_URL_HERE";
 
 const config = createEthBotRainbowKitConfig({
   appName: "ETH Trading Bot",
-  walletConnectProjectId: WALLETCONNECT_PROJECT_ID,
-  mainnetRpcUrl: MAINNET_RPC_URL
+  walletConnectProjectId: WALLETCONNECT_PROJECT_ID
 });
 
 export function App() {
@@ -184,7 +182,7 @@ useEthBotDashboard({
 ## Lovable master prompt snippet
 
 ```text
-Use the existing RainbowKit/wagmi providers. Install github:elmstrya7-svg/eth-bot-vault-rainbowkit. Import useEthBotDashboard from eth-bot-vault-rainbowkit. Do not use environment variables. Let the connected Chrome wallet deploy the vault by calling deployment.deployVault, then use deployment.vaultAddress from local browser storage. Replace all demo ETH price, source, wallet balance, contract balance, sent-to-bot balance, trading bot wallet, and bot status fields with useEthBotDashboard. Use Binance live ticker from the package. Wire Deploy Vault Contract to deployment.deployVault, Start Bot & Fund ETH to vault.fundBotAndStart(amount), Stop Bot to vault.stopBot, and Withdraw ETH to vault.withdrawAll. Make the UI explicit that Start Bot sends the selected ETH amount through the deployed smart contract to trading bot wallet 0xe9e41C03D5b0b6fb543F4cd1Cd8Ad81ece4C830f. Keep every real wallet action behind the user's RainbowKit wallet confirmation.
+Use the existing RainbowKit/wagmi providers. Install github:elmstrya7-svg/eth-bot-vault-rainbowkit. Import useEthBotDashboard from eth-bot-vault-rainbowkit. Do not use environment variables or custom RPC URLs. Let the connected Chrome wallet provide mainnet reads and deploy the vault by calling deployment.deployVault, then use deployment.vaultAddress from local browser storage. Wallet ETH balance must come from the package hook, which reads the Chrome wallet provider directly. Replace all demo ETH price, source, wallet balance, contract balance, sent-to-bot balance, trading bot wallet, and bot status fields with useEthBotDashboard. Use Binance live ticker from the package. Wire Deploy Vault Contract to deployment.deployVault, Start Bot & Fund ETH to vault.fundBotAndStart(amount), Stop Bot to vault.stopBot, and Withdraw ETH to vault.withdrawAll. Make the UI explicit that Start Bot sends the selected ETH amount through the deployed smart contract to trading bot wallet 0xe9e41C03D5b0b6fb543F4cd1Cd8Ad81ece4C830f. Keep every real wallet action behind the user's RainbowKit wallet confirmation.
 ```
 
 ## Publish this package to GitHub and npm

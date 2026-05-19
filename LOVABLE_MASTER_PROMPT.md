@@ -19,7 +19,7 @@ Import RainbowKit styles once:
 
 import "@rainbow-me/rainbowkit/styles.css";
 
-Use RainbowKit and wagmi for wallet connection. The app must support Ethereum mainnet. Do not ask users for seed phrases, private keys, exchange API keys, or custody credentials.
+Use RainbowKit and wagmi for wallet connection. Configure RainbowKit with the package helper so it exposes the browser-injected Chrome wallet connector only. The app must support Ethereum mainnet. Do not ask users for seed phrases, private keys, exchange API keys, or custody credentials.
 
 Required package imports:
 
@@ -39,12 +39,10 @@ import { createEthBotRainbowKitConfig } from "eth-bot-vault-rainbowkit";
 const queryClient = new QueryClient();
 
 const WALLETCONNECT_PROJECT_ID = "PASTE_WALLETCONNECT_PROJECT_ID_HERE";
-const MAINNET_RPC_URL = "PASTE_MAINNET_RPC_URL_HERE";
 
 const config = createEthBotRainbowKitConfig({
   appName: "EtherTrade Lite",
-  walletConnectProjectId: WALLETCONNECT_PROJECT_ID,
-  mainnetRpcUrl: MAINNET_RPC_URL
+  walletConnectProjectId: WALLETCONNECT_PROJECT_ID
 });
 
 Wrap the app:
@@ -57,11 +55,11 @@ Wrap the app:
   </QueryClientProvider>
 </WagmiProvider>
 
-Do not use environment variables for this build.
+Do not use environment variables or custom RPC URLs for this build. When `mainnetRpcUrl` is omitted, the package uses the connected Chrome wallet provider for Ethereum mainnet reads. Wallet ETH balance must come only from the package hook, which reads `window.ethereum` directly with `eth_getBalance`.
 
 The vault contract address must be created live inside the dashboard. The connected Chrome wallet deploys the vault contract using the package. The package stores the deployed vault address in browser localStorage.
 
-If the app already has RainbowKit/wagmi configured, do not add `WALLETCONNECT_PROJECT_ID` or `MAINNET_RPC_URL` constants. Reuse the existing wallet provider setup.
+If the app already has RainbowKit/wagmi configured, do not add custom RPC URL constants. Reuse the existing wallet provider setup where possible.
 
 The bot wallet is already hardcoded inside the package smart contract:
 
@@ -104,6 +102,8 @@ price.status
 
 Wallet ETH balance:
 `${wallet.formatted} ETH`
+
+Do not use wagmi `useBalance`, public RPC URLs, Cloudflare RPC, Alchemy, Infura, or any manually configured RPC provider for wallet ETH balance.
 
 Contract-held ETH balance:
 `${bot.fundedEth} ETH`
