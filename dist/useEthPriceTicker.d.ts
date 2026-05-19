@@ -22,7 +22,7 @@ export type UseEthPriceTickerResult = {
     changePercent24hText: string;
     high24h: number | null;
     low24h: number | null;
-    source: "Binance";
+    source: "Market feed";
     symbol: "ETHUSDT";
     status: EthPriceTickerStatus;
     updatedAt?: Date;

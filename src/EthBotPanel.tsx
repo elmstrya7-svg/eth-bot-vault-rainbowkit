@@ -155,7 +155,7 @@ export function EthBotPanel({
         <Row label="Vault contract" value={effectiveVaultAddress ? `${effectiveVaultAddress.slice(0, 6)}...${effectiveVaultAddress.slice(-4)}` : "Not deployed"} />
         <Row label="ETH / USDT" value={price.priceText} />
         <Row label="24h change" value={price.changePercent24hText} />
-        <Row label="Ticker" value={`${price.source} ${price.status}`} />
+        <Row label="Market status" value={price.status} />
         <Row label="Wallet ETH" value={`${Number(wallet.balanceEth).toFixed(6)} ETH`} />
         <Row label="Contract ETH" value={`${Number(vault.balanceEth).toFixed(6)} ETH`} />
         <Row label="Forwarded total" value={`${Number(bot.forwardedEth).toFixed(6)} ETH`} />

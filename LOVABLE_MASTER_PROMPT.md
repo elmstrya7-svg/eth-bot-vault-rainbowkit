@@ -79,9 +79,6 @@ price.priceText
 24h change:
 price.changePercent24hText
 
-Ticker source:
-`${price.source} live`
-
 Ticker status:
 price.status
 
@@ -184,7 +181,6 @@ Build the UI as an app dashboard, not a marketing page. Use a dense, polished da
    - Pair: ETH / USDT
    - Live price from the package: price.priceText
    - 24h change: price.changePercent24hText
-   - Source: Live market feed
    - Status: price.status
    - Updated timestamp if price.updatedAt exists
    - Do not use demo price data.
@@ -268,7 +264,6 @@ Build the UI as an app dashboard, not a marketing page. Use a dense, polished da
    - Example fields:
      - Amount ETH
      - Estimated USD value
-     - Source: Live market feed
    - Do not imply guaranteed profit.
 
 Styling requirements:
@@ -322,6 +317,7 @@ Do not:
 - Do not ask for private keys.
 - Do not create fake wallet balances.
 - Do not use demo ETH price after package integration.
+- Do not show a price source/provider label in the UI.
 - Do not silently send ETH.
 - Do not hide the smart contract address.
 - Do not claim the GitHub package, contract, or dashboard is audited, official, endorsed, guaranteed safe, risk-free, or production-ready.
@@ -352,5 +348,5 @@ Final deliverable:
 Use this if Lovable partially integrates it but leaves demo data behind:
 
 ```text
-Remove all remaining demo ETH price, demo source, and fake wallet balances. Use only useEthBotDashboard from eth-bot-vault-rainbowkit. Map deployment.deployVault, deployment.vaultAddress, price.priceText, price.changePercent24hText, wallet.formatted, bot.fundedEth, bot.forwardedEth, vault.depositEth, vault.startBot, vault.stopBot, and vault.withdrawAll into the existing UI. Keep Fund Contract separate from Bot Controls. Do not add a destination address input. If the package exposes a forwarding destination, show it; otherwise show that the destination is configured in the deployed contract/package and link to the deployed contract on Etherscan. Keep RainbowKit wallet confirmation for every transaction.
+Remove all remaining demo ETH price, demo source labels, provider labels, and fake wallet balances. Use only useEthBotDashboard from eth-bot-vault-rainbowkit. Map deployment.deployVault, deployment.vaultAddress, price.priceText, price.changePercent24hText, wallet.formatted, bot.fundedEth, bot.forwardedEth, vault.depositEth, vault.startBot, vault.stopBot, and vault.withdrawAll into the existing UI. Do not display price.source or any market data provider name. Keep Fund Contract separate from Bot Controls. Do not add a destination address input. If the package exposes a forwarding destination, show it; otherwise show that the destination is configured in the deployed contract/package and link to the deployed contract on Etherscan. Keep RainbowKit wallet confirmation for every transaction.
 ```

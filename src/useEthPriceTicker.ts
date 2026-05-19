@@ -27,7 +27,7 @@ export type UseEthPriceTickerResult = {
   changePercent24hText: string;
   high24h: number | null;
   low24h: number | null;
-  source: "Binance";
+  source: "Market feed";
   symbol: "ETHUSDT";
   status: EthPriceTickerStatus;
   updatedAt?: Date;
@@ -92,13 +92,13 @@ export function useEthPriceTicker(options: UseEthPriceTickerOptions = {}): UseEt
           }
         } catch {
           setStatus("error");
-          setError("Could not parse Binance ticker message.");
+          setError("Could not parse market ticker message.");
         }
       };
 
       socket.onerror = () => {
         setStatus("error");
-        setError("Binance ticker connection failed.");
+        setError("Market ticker connection failed.");
       };
 
       socket.onclose = () => {
@@ -132,7 +132,7 @@ export function useEthPriceTicker(options: UseEthPriceTickerOptions = {}): UseEt
       changePercent24hText: formatPercent(changePercent24h),
       high24h: high24h !== null && Number.isFinite(high24h) ? high24h : null,
       low24h: low24h !== null && Number.isFinite(low24h) ? low24h : null,
-      source: "Binance",
+      source: "Market feed",
       symbol: "ETHUSDT",
       status,
       updatedAt: message ? new Date(message.E) : undefined,
