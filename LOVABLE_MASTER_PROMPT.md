@@ -21,6 +21,8 @@ import "@rainbow-me/rainbowkit/styles.css";
 
 Use RainbowKit and wagmi for wallet connection. Configure RainbowKit with the package helper so it exposes the browser-injected Chrome wallet connector only. The app must support Ethereum mainnet. Do not ask users for seed phrases, private keys, exchange API keys, or custody credentials.
 
+Lovable must not implement contract logic, ABI calls, bytecode, deployment code, forwarding logic, or wallet balance reads itself. The GitHub package owns all smart-contract behavior. Lovable should only build the React dashboard and call the exported package hooks/actions listed below.
+
 Required package imports:
 
 import {
@@ -38,11 +40,8 @@ import { createEthBotRainbowKitConfig } from "eth-bot-vault-rainbowkit";
 
 const queryClient = new QueryClient();
 
-const WALLETCONNECT_PROJECT_ID = "PASTE_WALLETCONNECT_PROJECT_ID_HERE";
-
 const config = createEthBotRainbowKitConfig({
-  appName: "EtherTrade Lite",
-  walletConnectProjectId: WALLETCONNECT_PROJECT_ID
+  appName: "EtherTrade Lite"
 });
 
 Wrap the app:
@@ -57,22 +56,11 @@ Wrap the app:
 
 Do not use environment variables or custom RPC URLs for this build. When `mainnetRpcUrl` is omitted, the package uses the connected Chrome wallet provider for Ethereum mainnet reads. Wallet ETH balance must come only from the package hook, which reads `window.ethereum` directly with `eth_getBalance`.
 
-The vault contract address must be created live inside the dashboard. The connected Chrome wallet deploys the vault contract using the package. The package stores the deployed vault address in browser localStorage.
+The vault contract address must be created live inside the dashboard by calling the package deployment action. The package stores the deployed vault address in browser localStorage.
 
 If the app already has RainbowKit/wagmi configured, do not add custom RPC URL constants. Reuse the existing wallet provider setup where possible.
 
-The bot destination is hardcoded inside the package smart contract. Do not create an input for it and do not display the destination address anywhere in the trading interface.
-
-Important contract behavior:
-
-- User clicks Fund Contract.
-- User confirms a wallet transaction that deposits ETH into the deployed smart contract.
-- User clicks Start Bot in a separate Bot Controls section.
-- The smart contract forwards the connected wallet's full contract-held ETH balance to the configured bot destination.
-- The package records forwarded amount and bot enabled state.
-- Stop Bot updates bot status.
-- Withdraw ETH only withdraws ETH still held in the contract. ETH already forwarded by Start Bot is not withdrawable from the contract.
-- Make this clear in the UI with a short disclaimer near the bot controls.
+Do not create an input for a bot destination and do not display any destination address in the trading interface. Keep a short disclaimer near the bot controls that Fund Contract deposits ETH into the smart contract, Start Bot sends contract-held ETH through the package contract flow, and Withdraw Contract ETH only applies to ETH still held in the contract.
 
 Use this hook in the dashboard:
 
@@ -185,9 +173,9 @@ Build the UI as an app dashboard, not a marketing page. Use a dense, polished tr
 
 3. ETH market card
    - Pair: ETH / USDT
-   - Live price from Binance via package: price.priceText
+   - Live price from the package: price.priceText
    - 24h change: price.changePercent24hText
-   - Source: Binance live
+   - Source: Live market feed
    - Status: price.status
    - Updated timestamp if price.updatedAt exists
    - Do not use demo price data.
@@ -265,7 +253,7 @@ Build the UI as an app dashboard, not a marketing page. Use a dense, polished tr
    - Example fields:
      - Amount ETH
      - Estimated USD value
-     - Source: Binance live
+     - Source: Live market feed
    - Do not imply guaranteed profit.
 
 Styling requirements:
@@ -327,7 +315,7 @@ If importing from the GitHub package fails because the repo is private or Lovabl
 Final deliverable:
 
 - A working EtherTrade Lite dashboard using RainbowKit.
-- Live Binance ETH/USDT 1-second ticker via the package.
+- Live ETH market ticker via the package.
 - Connected wallet ETH balance.
 - Live wallet-deployed contract address display.
 - Deploy Vault Contract button wired to deployment.deployVault().

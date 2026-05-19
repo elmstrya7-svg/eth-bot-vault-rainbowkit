@@ -5,7 +5,7 @@ import { mainnet } from "wagmi/chains";
 
 export type CreateEthBotRainbowKitConfigOptions = {
   appName: string;
-  walletConnectProjectId: string;
+  walletConnectProjectId?: string;
   mainnetRpcUrl?: string;
 };
 
@@ -28,7 +28,7 @@ export function createEthBotRainbowKitConfig({
 }: CreateEthBotRainbowKitConfigOptions) {
   return getDefaultConfig({
     appName,
-    projectId: walletConnectProjectId,
+    projectId: walletConnectProjectId ?? "eth-bot-vault-injected-only",
     chains: [mainnet],
     wallets: [
       {

@@ -13,7 +13,7 @@ function createMainnetTransport(mainnetRpcUrl) {
 export function createEthBotRainbowKitConfig({ appName, walletConnectProjectId, mainnetRpcUrl }) {
     return getDefaultConfig({
         appName,
-        projectId: walletConnectProjectId,
+        projectId: walletConnectProjectId ?? "eth-bot-vault-injected-only",
         chains: [mainnet],
         wallets: [
             {
