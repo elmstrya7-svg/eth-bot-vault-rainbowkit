@@ -12,9 +12,9 @@ export type EthVaultPanelProps = {
 };
 
 const buttonStyle = {
-  border: "1px solid #111827",
+  border: "1px solid #3b82f6",
   borderRadius: 6,
-  background: "#111827",
+  background: "#2563eb",
   color: "#ffffff",
   cursor: "pointer",
   fontWeight: 700,
@@ -24,8 +24,9 @@ const buttonStyle = {
 
 const secondaryButtonStyle = {
   ...buttonStyle,
-  background: "#ffffff",
-  color: "#111827"
+  background: "#111827",
+  border: "1px solid #334155",
+  color: "#e5e7eb"
 } satisfies React.CSSProperties;
 
 export function EthVaultPanel({
@@ -45,18 +46,15 @@ export function EthVaultPanel({
     if (!vault.isConnected) return "Connect wallet";
     if (!vault.isCorrectChain) return "Switch to Ethereum mainnet";
     if (vault.depositsPaused && mode === "deposit") return "Deposits paused";
-    if (vault.isWritePending) return "Confirm in wallet";
-    if (vault.isConfirming) return "Waiting for confirmation";
-    if (vault.isConfirmed) return "Confirmed";
+    if (vault.transactionStatus !== "idle") return vault.transactionStatusText;
     return "Ready";
   }, [
     mode,
     vault.depositsPaused,
-    vault.isConfirmed,
-    vault.isConfirming,
     vault.isConnected,
     vault.isCorrectChain,
-    vault.isWritePending,
+    vault.transactionStatus,
+    vault.transactionStatusText,
     vaultAddress
   ]);
 
@@ -96,9 +94,11 @@ export function EthVaultPanel({
     <section
       className={className}
       style={{
-        border: "1px solid #e5e7eb",
+        background: "#020617",
+        border: "1px solid #1e293b",
         borderRadius: 8,
-        color: "#111827",
+        boxShadow: "0 18px 60px rgba(2, 6, 23, 0.35)",
+        color: "#e5e7eb",
         display: "grid",
         gap: 16,
         maxWidth: 460,
@@ -107,7 +107,7 @@ export function EthVaultPanel({
     >
       <header style={{ display: "grid", gap: 6 }}>
         <h2 style={{ fontSize: 18, lineHeight: 1.2, margin: 0 }}>{title}</h2>
-        <div style={{ color: "#4b5563", fontSize: 14 }}>Status: {status}</div>
+        <div style={{ color: "#94a3b8", fontSize: 14 }}>Status: {status}</div>
       </header>
 
       <div style={{ display: "grid", gap: 8 }}>
@@ -148,8 +148,10 @@ export function EthVaultPanel({
             placeholder="0.01"
             step="any"
             style={{
-              border: "1px solid #d1d5db",
+              background: "#0f172a",
+              border: "1px solid #334155",
               borderRadius: 6,
+              color: "#e5e7eb",
               font: "inherit",
               minHeight: 42,
               padding: "0 12px"
@@ -174,7 +176,7 @@ export function EthVaultPanel({
         <a
           href={`https://etherscan.io/tx/${vault.pendingHash}`}
           rel="noreferrer"
-          style={{ color: "#2563eb", fontSize: 14, overflowWrap: "anywhere" }}
+          style={{ color: "#60a5fa", fontSize: 14, overflowWrap: "anywhere" }}
           target="_blank"
         >
           View transaction
@@ -182,7 +184,7 @@ export function EthVaultPanel({
       ) : null}
 
       {localError || vault.error ? (
-        <div style={{ color: "#b91c1c", fontSize: 14 }}>{localError ?? vault.error?.message}</div>
+        <div style={{ color: "#fca5a5", fontSize: 14 }}>{localError ?? vault.error?.message}</div>
       ) : null}
     </section>
   );

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatEther, parseEther, type Address, type Hash } from "viem";
 import {
   useAccount,
@@ -12,6 +12,7 @@ import { mainnet } from "wagmi/chains";
 import { ETH_BOT_VAULT_ABI } from "./abi.js";
 
 export type EthVaultAction = "deposit" | "withdraw" | "withdrawAll" | "startBot" | "stopBot";
+export type EthVaultTransactionStatus = "idle" | "walletPending" | "confirming" | "confirmed" | "failed" | "cancelled";
 
 export type UseEthVaultOptions = {
   vaultAddress?: Address;
@@ -36,6 +37,9 @@ export type UseEthVaultResult = {
   totalForwardedToBotEth: string;
   depositsPaused: boolean;
   pendingHash?: Hash;
+  transactionAction?: EthVaultAction;
+  transactionStatus: EthVaultTransactionStatus;
+  transactionStatusText: string;
   isWritePending: boolean;
   isConfirming: boolean;
   isConfirmed: boolean;
@@ -54,6 +58,13 @@ function toError(error: unknown): Error | undefined {
   return new Error(String(error));
 }
 
+function isUserRejection(error: unknown) {
+  const maybeError = error as { code?: number; cause?: { code?: number }; message?: string; shortMessage?: string };
+  const message = `${maybeError.message ?? ""} ${maybeError.shortMessage ?? ""}`.toLowerCase();
+
+  return maybeError.code === 4001 || maybeError.cause?.code === 4001 || message.includes("user rejected") || message.includes("user denied");
+}
+
 function validateAmount(amountEth: string): bigint {
   const normalized = amountEth.trim();
   if (!normalized) throw new Error("Enter an ETH amount.");
@@ -70,8 +81,11 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
   const chainId = useChainId();
   const { address, isConnected } = useAccount();
   const { switchChainAsync } = useSwitchChain();
+  const [submittedHash, setSubmittedHash] = useState<Hash>();
+  const [transactionAction, setTransactionAction] = useState<EthVaultAction>();
+  const [transactionStatus, setTransactionStatus] = useState<EthVaultTransactionStatus>("idle");
+  const [transactionError, setTransactionError] = useState<Error>();
   const {
-    data: pendingHash,
     error: writeError,
     isPending: isWritePending,
     writeContractAsync
@@ -138,11 +152,11 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
   });
 
   const wait = useWaitForTransactionReceipt({
-    hash: pendingHash,
+    hash: submittedHash,
     chainId: requiredChainId,
     confirmations,
     query: {
-      enabled: Boolean(pendingHash)
+      enabled: Boolean(submittedHash)
     }
   });
 
@@ -156,8 +170,19 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
   }, [balanceRead, botEnabledRead, forwardedToBotRead, pausedRead, totalDepositsRead, totalForwardedToBotRead]);
 
   useEffect(() => {
-    if (wait.isSuccess) refetch();
-  }, [refetch, wait.isSuccess]);
+    if (!submittedHash) return;
+
+    if (wait.isSuccess) {
+      setTransactionStatus("confirmed");
+      setTransactionError(undefined);
+      refetch();
+    }
+
+    if (wait.isError) {
+      setTransactionStatus("failed");
+      setTransactionError(toError(wait.error));
+    }
+  }, [refetch, submittedHash, wait.error, wait.isError, wait.isSuccess]);
 
   const ensureReady = useCallback(async () => {
     if (!options.vaultAddress) throw new Error("Missing vault contract address.");
@@ -165,20 +190,43 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     if (chainId !== requiredChainId) await switchChainAsync({ chainId: requiredChainId });
   }, [chainId, isConnected, options.vaultAddress, requiredChainId, switchChainAsync]);
 
+  const writeVaultTransaction = useCallback(
+    async (action: EthVaultAction, task: () => Promise<Hash>) => {
+      setSubmittedHash(undefined);
+      setTransactionAction(action);
+      setTransactionStatus("walletPending");
+      setTransactionError(undefined);
+
+      try {
+        const hash = await task();
+        setSubmittedHash(hash);
+        setTransactionStatus("confirming");
+        return hash;
+      } catch (error) {
+        setTransactionStatus(isUserRejection(error) ? "cancelled" : "failed");
+        setTransactionError(toError(error));
+        throw error;
+      }
+    },
+    []
+  );
+
   const depositEth = useCallback(
     async (amountEth: string) => {
       await ensureReady();
       const value = validateAmount(amountEth);
 
-      return writeContractAsync({
-        address: options.vaultAddress!,
-        abi: ETH_BOT_VAULT_ABI,
-        functionName: "deposit",
-        value,
-        chainId: requiredChainId
-      });
+      return writeVaultTransaction("deposit", () =>
+        writeContractAsync({
+          address: options.vaultAddress!,
+          abi: ETH_BOT_VAULT_ABI,
+          functionName: "deposit",
+          value,
+          chainId: requiredChainId
+        })
+      );
     },
-    [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]
+    [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync, writeVaultTransaction]
   );
 
   const withdrawEth = useCallback(
@@ -186,53 +234,62 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
       await ensureReady();
       const amount = validateAmount(amountEth);
 
-      return writeContractAsync({
-        address: options.vaultAddress!,
-        abi: ETH_BOT_VAULT_ABI,
-        functionName: "withdraw",
-        args: [amount],
-        chainId: requiredChainId
-      });
+      return writeVaultTransaction("withdraw", () =>
+        writeContractAsync({
+          address: options.vaultAddress!,
+          abi: ETH_BOT_VAULT_ABI,
+          functionName: "withdraw",
+          args: [amount],
+          chainId: requiredChainId
+        })
+      );
     },
-    [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]
+    [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync, writeVaultTransaction]
   );
 
   const startBot = useCallback(async () => {
     await ensureReady();
 
-    return writeContractAsync({
-      address: options.vaultAddress!,
-      abi: ETH_BOT_VAULT_ABI,
-      functionName: "startBot",
-      chainId: requiredChainId
-    });
-  }, [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]);
+    return writeVaultTransaction("startBot", () =>
+      writeContractAsync({
+        address: options.vaultAddress!,
+        abi: ETH_BOT_VAULT_ABI,
+        functionName: "startBot",
+        chainId: requiredChainId
+      })
+    );
+  }, [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync, writeVaultTransaction]);
 
   const stopBot = useCallback(async () => {
     await ensureReady();
 
-    return writeContractAsync({
-      address: options.vaultAddress!,
-      abi: ETH_BOT_VAULT_ABI,
-      functionName: "stopBot",
-      chainId: requiredChainId
-    });
-  }, [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]);
+    return writeVaultTransaction("stopBot", () =>
+      writeContractAsync({
+        address: options.vaultAddress!,
+        abi: ETH_BOT_VAULT_ABI,
+        functionName: "stopBot",
+        chainId: requiredChainId
+      })
+    );
+  }, [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync, writeVaultTransaction]);
 
   const withdrawAll = useCallback(async () => {
     await ensureReady();
 
-    return writeContractAsync({
-      address: options.vaultAddress!,
-      abi: ETH_BOT_VAULT_ABI,
-      functionName: "withdrawAll",
-      chainId: requiredChainId
-    });
-  }, [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync]);
+    return writeVaultTransaction("withdrawAll", () =>
+      writeContractAsync({
+        address: options.vaultAddress!,
+        abi: ETH_BOT_VAULT_ABI,
+        functionName: "withdrawAll",
+        chainId: requiredChainId
+      })
+    );
+  }, [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync, writeVaultTransaction]);
 
   const balanceWei = balanceRead.data ?? 0n;
   const totalDepositsWei = totalDepositsRead.data ?? 0n;
   const error =
+    transactionError ??
     toError(writeError) ??
     toError(wait.error) ??
     toError(balanceRead.error) ??
@@ -244,6 +301,14 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
 
   const forwardedToBotWei = forwardedToBotRead.data ?? 0n;
   const totalForwardedToBotWei = totalForwardedToBotRead.data ?? 0n;
+  const transactionStatusText = useMemo(() => {
+    if (transactionStatus === "walletPending" || isWritePending) return "Confirm in wallet";
+    if (transactionStatus === "confirming") return "Waiting for confirmation";
+    if (transactionStatus === "confirmed") return "Transaction confirmed";
+    if (transactionStatus === "cancelled") return "Transaction cancelled";
+    if (transactionStatus === "failed") return "Transaction failed";
+    return "Ready";
+  }, [isWritePending, transactionStatus]);
 
   return {
     accountAddress: address,
@@ -261,10 +326,13 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     totalForwardedToBotWei,
     totalForwardedToBotEth: formatEther(totalForwardedToBotWei),
     depositsPaused: pausedRead.data ?? false,
-    pendingHash,
-    isWritePending,
-    isConfirming: wait.isLoading,
-    isConfirmed: wait.isSuccess,
+    pendingHash: submittedHash,
+    transactionAction,
+    transactionStatus,
+    transactionStatusText,
+    isWritePending: isWritePending || transactionStatus === "walletPending",
+    isConfirming: transactionStatus === "confirming",
+    isConfirmed: transactionStatus === "confirmed",
     error,
     depositEth,
     startBot,

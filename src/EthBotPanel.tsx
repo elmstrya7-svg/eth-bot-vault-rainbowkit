@@ -21,9 +21,9 @@ const usdFormatter = new Intl.NumberFormat("en-US", {
 });
 
 const buttonStyle: CSSProperties = {
-  border: "1px solid #111827",
+  border: "1px solid #3b82f6",
   borderRadius: 6,
-  background: "#111827",
+  background: "#2563eb",
   color: "#ffffff",
   cursor: "pointer",
   fontWeight: 700,
@@ -33,8 +33,9 @@ const buttonStyle: CSSProperties = {
 
 const secondaryButtonStyle: CSSProperties = {
   ...buttonStyle,
-  background: "#ffffff",
-  color: "#111827"
+  background: "#111827",
+  border: "1px solid #334155",
+  color: "#e5e7eb"
 };
 
 function formatUsd(value: number | null) {
@@ -49,12 +50,16 @@ export function EthBotPanel({
   onSubmitted,
   onVaultDeployed
 }: EthBotPanelProps) {
-  const [fundAmountEth, setFundAmountEth] = useState("0.01");
+  const [fundAmountEth, setFundAmountEth] = useState("0.0001");
   const [localError, setLocalError] = useState<string>();
   const dashboard = useEthBotDashboard({ vaultAddress, chainId });
   const { bot, deployment, price, vault, wallet } = dashboard;
   const effectiveVaultAddress = vaultAddress ?? deployment.vaultAddress;
   const isBusy = vault.isWritePending || vault.isConfirming || deployment.isDeployPending || deployment.isDeploying;
+  const requestedFundAmountEth = Number(fundAmountEth);
+  const walletBalanceEth = Number(wallet.balanceEth);
+  const hasValidFundAmount = Number.isFinite(requestedFundAmountEth) && requestedFundAmountEth > 0;
+  const hasEnoughWalletEth = hasValidFundAmount && Number.isFinite(walletBalanceEth) && requestedFundAmountEth < walletBalanceEth;
 
   const status = useMemo(() => {
     if (!effectiveVaultAddress) {
@@ -68,7 +73,11 @@ export function EthBotPanel({
     }
     if (!vault.isConnected) return "Connect wallet";
     if (!vault.isCorrectChain) return "Switch to Ethereum mainnet";
+    if (vault.transactionStatus === "cancelled" || vault.transactionStatus === "failed" || vault.transactionStatus === "confirmed") {
+      return vault.transactionStatusText;
+    }
     if (isBusy) return vault.isWritePending ? "Confirm in wallet" : "Waiting for confirmation";
+    if (hasValidFundAmount && !hasEnoughWalletEth) return "Amount exceeds wallet ETH balance";
     if (bot.isRunning) return "Bot running";
     if (bot.isFunded) return "Funded, ready to start";
     return "Ready to fund";
@@ -79,9 +88,13 @@ export function EthBotPanel({
     deployment.contractStatusText,
     deployment.deployStatus,
     deployment.deployStatusText,
+    hasEnoughWalletEth,
+    hasValidFundAmount,
     deployment.isDeploying,
     effectiveVaultAddress,
     isBusy,
+    vault.transactionStatus,
+    vault.transactionStatusText,
     vault.isConnected,
     vault.isCorrectChain,
     vault.isWritePending
@@ -89,6 +102,7 @@ export function EthBotPanel({
 
   const canDeploy = !effectiveVaultAddress && deployment.isConnected && !isBusy;
   const canUseVault = Boolean(effectiveVaultAddress) && vault.isConnected && vault.isCorrectChain && !isBusy;
+  const canFund = canUseVault && !vault.depositsPaused && hasValidFundAmount && hasEnoughWalletEth;
 
   async function runAction(action: EthVaultAction, task: () => Promise<string>) {
     setLocalError(undefined);
@@ -121,9 +135,11 @@ export function EthBotPanel({
     <section
       className={className}
       style={{
-        border: "1px solid #e5e7eb",
+        background: "#020617",
+        border: "1px solid #1e293b",
         borderRadius: 8,
-        color: "#111827",
+        boxShadow: "0 18px 60px rgba(2, 6, 23, 0.35)",
+        color: "#e5e7eb",
         display: "grid",
         gap: 16,
         maxWidth: 520,
@@ -132,7 +148,7 @@ export function EthBotPanel({
     >
       <header style={{ display: "grid", gap: 6 }}>
         <h2 style={{ fontSize: 18, lineHeight: 1.2, margin: 0 }}>{title}</h2>
-        <div style={{ color: "#4b5563", fontSize: 14 }}>Status: {status}</div>
+        <div style={{ color: "#94a3b8", fontSize: 14 }}>Status: {status}</div>
       </header>
 
       <div style={{ display: "grid", gap: 8 }}>
@@ -142,8 +158,8 @@ export function EthBotPanel({
         <Row label="Ticker" value={`${price.source} ${price.status}`} />
         <Row label="Wallet ETH" value={`${Number(wallet.balanceEth).toFixed(6)} ETH`} />
         <Row label="Contract ETH" value={`${Number(vault.balanceEth).toFixed(6)} ETH`} />
-        <Row label="Sent to bot" value={`${Number(bot.forwardedEth).toFixed(6)} ETH`} />
-        <Row label="Sent value" value={formatUsd(bot.forwardedUsd)} />
+        <Row label="Forwarded total" value={`${Number(bot.forwardedEth).toFixed(6)} ETH`} />
+        <Row label="Forwarded value" value={formatUsd(bot.forwardedUsd)} />
       </div>
 
       {!effectiveVaultAddress ? (
@@ -161,14 +177,14 @@ export function EthBotPanel({
         <a
           href={`https://etherscan.io/tx/${deployment.deployHash}`}
           rel="noreferrer"
-          style={{ color: "#2563eb", fontSize: 14, overflowWrap: "anywhere" }}
+          style={{ color: "#60a5fa", fontSize: 14, overflowWrap: "anywhere" }}
           target="_blank"
         >
           View deployment transaction
         </a>
       ) : null}
 
-      <div style={{ borderTop: "1px solid #e5e7eb", display: "grid", gap: 10, paddingTop: 14 }}>
+      <div style={{ borderTop: "1px solid #1e293b", display: "grid", gap: 10, paddingTop: 14 }}>
         <h3 style={{ fontSize: 15, lineHeight: 1.2, margin: 0 }}>Fund Contract</h3>
         <label style={{ display: "grid", gap: 6, fontSize: 14, fontWeight: 700 }}>
           Amount ETH
@@ -176,11 +192,13 @@ export function EthBotPanel({
             inputMode="decimal"
             min="0"
             onChange={(event) => setFundAmountEth(event.target.value)}
-            placeholder="0.01"
+            placeholder="0.0001"
             step="any"
             style={{
-              border: "1px solid #d1d5db",
+              background: "#0f172a",
+              border: "1px solid #334155",
               borderRadius: 6,
+              color: "#e5e7eb",
               font: "inherit",
               minHeight: 42,
               padding: "0 12px"
@@ -190,16 +208,21 @@ export function EthBotPanel({
           />
         </label>
         <button
-          disabled={!canUseVault || vault.depositsPaused}
+          disabled={!canFund}
           onClick={() => void runAction("deposit", () => vault.depositEth(fundAmountEth))}
-          style={{ ...buttonStyle, opacity: canUseVault && !vault.depositsPaused ? 1 : 0.5 }}
+          style={{ ...buttonStyle, opacity: canFund ? 1 : 0.5 }}
           type="button"
         >
           Fund Contract
         </button>
+        {hasValidFundAmount && !hasEnoughWalletEth ? (
+          <div style={{ color: "#fca5a5", fontSize: 13 }}>
+            Amount must be lower than wallet ETH balance so gas can also be paid.
+          </div>
+        ) : null}
       </div>
 
-      <div style={{ borderTop: "1px solid #e5e7eb", display: "grid", gap: 10, paddingTop: 14 }}>
+      <div style={{ borderTop: "1px solid #1e293b", display: "grid", gap: 10, paddingTop: 14 }}>
         <h3 style={{ fontSize: 15, lineHeight: 1.2, margin: 0 }}>Bot Controls</h3>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           <button
@@ -229,16 +252,16 @@ export function EthBotPanel({
         </button>
       </div>
 
-      <div style={{ color: "#6b7280", fontSize: 13, lineHeight: 1.4 }}>
-        Fund Contract holds ETH in the vault. Start Bot forwards the contract-held ETH for the connected wallet.
-        Withdraw applies only to ETH still held in the contract.
+      <div style={{ color: "#94a3b8", fontSize: 13, lineHeight: 1.4 }}>
+        Fund Contract holds ETH in the vault. Start Bot calls the package contract action for contract-held ETH.
+        Withdraw applies only to ETH still held in the contract. Inspect the deployed contract and wallet transaction before confirming.
       </div>
 
       {vault.pendingHash ? (
         <a
           href={`https://etherscan.io/tx/${vault.pendingHash}`}
           rel="noreferrer"
-          style={{ color: "#2563eb", fontSize: 14, overflowWrap: "anywhere" }}
+          style={{ color: "#60a5fa", fontSize: 14, overflowWrap: "anywhere" }}
           target="_blank"
         >
           View transaction
@@ -246,7 +269,7 @@ export function EthBotPanel({
       ) : null}
 
       {localError || deployment.error || vault.error || price.error || wallet.error ? (
-        <div style={{ color: "#b91c1c", fontSize: 14 }}>
+        <div style={{ color: "#fca5a5", fontSize: 14 }}>
           {localError ?? deployment.error?.message ?? vault.error?.message ?? price.error ?? wallet.error?.message}
         </div>
       ) : null}

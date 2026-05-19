@@ -1,5 +1,6 @@
 import { type Address, type Hash } from "viem";
 export type EthVaultAction = "deposit" | "withdraw" | "withdrawAll" | "startBot" | "stopBot";
+export type EthVaultTransactionStatus = "idle" | "walletPending" | "confirming" | "confirmed" | "failed" | "cancelled";
 export type UseEthVaultOptions = {
     vaultAddress?: Address;
     chainId?: number;
@@ -22,6 +23,9 @@ export type UseEthVaultResult = {
     totalForwardedToBotEth: string;
     depositsPaused: boolean;
     pendingHash?: Hash;
+    transactionAction?: EthVaultAction;
+    transactionStatus: EthVaultTransactionStatus;
+    transactionStatusText: string;
     isWritePending: boolean;
     isConfirming: boolean;
     isConfirmed: boolean;
