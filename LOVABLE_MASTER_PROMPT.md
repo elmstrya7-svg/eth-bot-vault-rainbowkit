@@ -38,10 +38,13 @@ import { createEthBotRainbowKitConfig } from "eth-bot-vault-rainbowkit";
 
 const queryClient = new QueryClient();
 
+const WALLETCONNECT_PROJECT_ID = "PASTE_WALLETCONNECT_PROJECT_ID_HERE";
+const MAINNET_RPC_URL = "PASTE_MAINNET_RPC_URL_HERE";
+
 const config = createEthBotRainbowKitConfig({
   appName: "EtherTrade Lite",
-  walletConnectProjectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID,
-  mainnetRpcUrl: import.meta.env.VITE_MAINNET_RPC_URL
+  walletConnectProjectId: WALLETCONNECT_PROJECT_ID,
+  mainnetRpcUrl: MAINNET_RPC_URL
 });
 
 Wrap the app:
@@ -54,11 +57,13 @@ Wrap the app:
   </QueryClientProvider>
 </WagmiProvider>
 
-Environment variables needed:
+Do not use environment variables for this build. Use source-code constants instead.
 
-VITE_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
-VITE_MAINNET_RPC_URL=your_ethereum_mainnet_rpc_url
-VITE_ETH_BOT_VAULT_ADDRESS=the_deployed_EthBotVault_contract_address
+Create a constants file if one does not exist, for example `src/eth-bot-config.ts`:
+
+export const ETH_BOT_VAULT_ADDRESS = "PASTE_DEPLOYED_ETH_BOT_VAULT_CONTRACT_ADDRESS_HERE" as const;
+
+If the app already has RainbowKit/wagmi configured, do not add `WALLETCONNECT_PROJECT_ID` or `MAINNET_RPC_URL` constants. Reuse the existing wallet provider setup and only add `ETH_BOT_VAULT_ADDRESS`.
 
 The bot wallet is already hardcoded inside the package smart contract:
 
@@ -80,7 +85,7 @@ Important contract behavior:
 Use this hook in the dashboard:
 
 const { bot, price, vault, wallet } = useEthBotDashboard({
-  vaultAddress: import.meta.env.VITE_ETH_BOT_VAULT_ADDRESS
+  vaultAddress: ETH_BOT_VAULT_ADDRESS
 });
 
 Data mappings:
@@ -175,9 +180,9 @@ Build the UI as an app dashboard, not a marketing page. Use a dense, polished tr
    - Mainnet status. If wrong network, tell user to switch to Ethereum.
 
 5. Smart contract card
-   - Deployed contract address from VITE_ETH_BOT_VAULT_ADDRESS
+   - Deployed contract address from ETH_BOT_VAULT_ADDRESS
    - Link to Etherscan:
-     https://etherscan.io/address/${import.meta.env.VITE_ETH_BOT_VAULT_ADDRESS}
+     https://etherscan.io/address/${ETH_BOT_VAULT_ADDRESS}
    - Trading bot wallet from bot.tradingBotWallet
    - Link to Etherscan for bot wallet:
      https://etherscan.io/address/${bot.tradingBotWallet}
