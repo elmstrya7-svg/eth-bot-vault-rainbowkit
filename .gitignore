@@ -1,0 +1,12 @@
+node_modules/
+artifacts/
+cache/
+typechain-types/
+.env
+.env.local
+.deploy_keys/
+codex-x86_64-pc-windows-msvc.exe
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

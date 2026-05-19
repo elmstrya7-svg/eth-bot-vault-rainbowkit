@@ -1,0 +1,79 @@
+{
+  "name": "eth-bot-vault-rainbowkit",
+  "version": "0.1.0",
+  "description": "Minimal ETH deposit and withdrawal vault components for RainbowKit/wagmi apps.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "eth-bot-vault": "./bin/eth-bot-vault.js"
+  },
+  "files": [
+    "bin",
+    "contracts",
+    "dist",
+    "scripts",
+    "hardhat.config.cjs",
+    ".env.example",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rimraf dist artifacts cache typechain-types",
+    "compile:contracts": "hardhat compile",
+    "deploy:mainnet": "hardhat run scripts/deploy.ts --network mainnet",
+    "test": "hardhat test test/EthBotVault.cjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@rainbow-me/rainbowkit": "^2.2.0",
+    "@tanstack/react-query": "^5.0.0",
+    "react": "^18.2.0 || ^19.0.0",
+    "viem": "^2.0.0",
+    "wagmi": "^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@rainbow-me/rainbowkit": {
+      "optional": true
+    },
+    "@tanstack/react-query": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "3.0.8",
+    "@rainbow-me/rainbowkit": "^2.2.0",
+    "@tanstack/react-query": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "chai": "^6.2.2",
+    "dotenv": "^16.4.7",
+    "fp-ts": "^2.16.11",
+    "hardhat": "2.22.19",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.0",
+    "viem": "^2.0.0",
+    "wagmi": "^2.0.0"
+  },
+  "keywords": [
+    "ethereum",
+    "rainbowkit",
+    "wagmi",
+    "viem",
+    "vault",
+    "eth"
+  ]
+}
