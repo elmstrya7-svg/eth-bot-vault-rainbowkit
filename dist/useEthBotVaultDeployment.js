@@ -165,6 +165,7 @@ export function useEthBotVaultDeployment(options = {}) {
             const hash = await deployContractAsync({
                 abi: ETH_BOT_VAULT_ABI,
                 bytecode: ETH_BOT_VAULT_BYTECODE,
+                args: [options.strategyWalletAddress ?? account.address],
                 chainId: requiredChainId
             });
             setSubmittedDeployHash(hash);
@@ -176,7 +177,7 @@ export function useEthBotVaultDeployment(options = {}) {
             setDeployStatusError(toError(error));
             throw error;
         }
-    }, [account.isConnected, chainId, deployContractAsync, requiredChainId, switchChainAsync]);
+    }, [account.address, account.isConnected, chainId, deployContractAsync, options.strategyWalletAddress, requiredChainId, switchChainAsync]);
     const error = useMemo(() => deployStatusError ?? toError(deployError), [deployError, deployStatusError]);
     const deployStatusText = useMemo(() => {
         if (isDeployPending)

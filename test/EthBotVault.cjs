@@ -2,12 +2,10 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("EthBotVault", function () {
-  const strategyWallet = "0xe9e41C03D5b0b6fb543F4cd1Cd8Ad81ece4C830f";
-
-  async function deployVault() {
+  async function deployVault(strategyWallet) {
     const [owner, alice, bob] = await ethers.getSigners();
     const EthBotVault = await ethers.getContractFactory("EthBotVault");
-    const vault = await EthBotVault.deploy();
+    const vault = await EthBotVault.deploy(strategyWallet ?? owner.address);
     await vault.waitForDeployment();
 
     return { owner, alice, bob, vault };
@@ -36,9 +34,15 @@ describe("EthBotVault", function () {
   });
 
   it("exposes the configured strategy wallet", async function () {
-    const { vault } = await deployVault();
+    const { owner, vault } = await deployVault();
 
-    expect(await vault.strategyWallet()).to.equal(strategyWallet);
+    expect(await vault.strategyWallet()).to.equal(owner.address);
+  });
+
+  it("rejects a zero strategy wallet", async function () {
+    const EthBotVault = await ethers.getContractFactory("EthBotVault");
+
+    await expectCustomError(EthBotVault.deploy(ethers.ZeroAddress), "ZeroAddress");
   });
 
   it("lets users withdraw only their own balance", async function () {
@@ -66,8 +70,9 @@ describe("EthBotVault", function () {
   });
 
   it("allocates contract-held funds when a user activates the engine", async function () {
-    const { alice, bob, vault } = await deployVault();
+    const { alice, bob, owner, vault } = await deployVault();
     const amount = ethers.parseEther("0.1");
+    const strategyWallet = owner.address;
 
     await expectCustomError(vault.connect(bob).activateStrategyEngine(), "NoVaultBalance");
 

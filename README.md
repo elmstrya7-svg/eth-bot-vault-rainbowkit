@@ -14,7 +14,7 @@ Ethereum strategy vault package for RainbowKit/wagmi apps. It includes:
 - `contracts/BotTradeExecutor.sol`: a restricted executor contract for off-chain simulated trade calls.
 - `bot/executor-searcher.js`: a no-API-key viem runner that simulates an executor call before optionally sending it.
 
-The default flow separates funding from engine activation. Fund Contract deposits ETH into the deployed contract. Activate Engine commits the connected wallet's available contract balance to the configured strategy wallet and updates the user's engine status. ETH no longer held by the contract is not withdrawable from the contract; backend accounting and withdrawal handling should be added before presenting this as a complete live trading product.
+The default flow separates funding from engine activation. Fund Contract deposits ETH into the deployed contract. Activate Engine commits the connected wallet's available contract balance to the configured strategy destination and updates the user's engine status. The vault no longer embeds a package-author wallet: the strategy destination is supplied at deployment time. For trading automation, deploy `BotTradeExecutor` and use its address as the vault strategy destination. ETH no longer held by the vault is not withdrawable from the vault; executor withdrawals and backend accounting must be handled before presenting this as a complete live trading product.
 
 ## Install in Lovable
 
@@ -54,10 +54,16 @@ npm test
 Deploy to Ethereum mainnet:
 
 ```bash
-npx hardhat run scripts/deploy.ts --network mainnet
+npx hardhat run scripts/deploy.cjs --network mainnet
 ```
 
-For the no-env Lovable flow, let the dashboard deploy the vault from the connected Chrome wallet. The package stores the deployed address in `localStorage`. If `mainnetRpcUrl` is omitted, the RainbowKit helper routes mainnet contract reads through the connected injected wallet provider. Wallet ETH balance is read directly from `window.ethereum` with `eth_getBalance`.
+For the no-env Lovable flow, let the dashboard deploy the vault from the connected Chrome wallet. Unless you pass `deployment.strategyWalletAddress`, browser deployment uses the connected wallet as the strategy destination. That avoids sending ETH to an unknown hard-coded address, but it is not a trading setup. To retain executable trading, deploy `BotTradeExecutor` first and pass its address:
+
+```tsx
+<EthBotPanel strategyWalletAddress="0xYourBotTradeExecutor" />
+```
+
+The package stores the deployed vault address in `localStorage`. If `mainnetRpcUrl` is omitted, the RainbowKit helper routes mainnet contract reads through the connected injected wallet provider. Wallet ETH balance is read directly from `window.ethereum` with `eth_getBalance`.
 
 ## Basic Lovable Usage
 
@@ -158,7 +164,7 @@ Use the existing RainbowKit/wagmi providers. Install github:elmstrya7-svg/eth-bo
 Ethereum contracts are passive. Off-chain software must decide when to trade. This repo includes a starter execution path:
 
 ```text
-EthBotVault -> strategy wallet -> bot/executor-searcher.js -> BotTradeExecutor -> approved DEX/router target
+EthBotVault -> BotTradeExecutor -> bot/executor-searcher.js -> approved DEX/router target
 ```
 
 The executor only calls owner-approved targets. Target approvals now require deployed contract code and pin the approved target code hash. If a target's code hash changes, execution reverts. The bot runner uses `viem`, checks executor state, simulates `executeTrade`, and only broadcasts when `BOT_EXECUTE=true`.
@@ -209,7 +215,7 @@ For a browser/Lovable app with no custom RPC endpoint, use the exported helpers 
 2. Verify contract source on Etherscan before asking anyone else to use it.
 3. Connect with RainbowKit.
 4. Use `Fund Contract` with a very small amount first, for example `0.0001 ETH`.
-5. Use `Activate Engine` and inspect the wallet confirmation before signing.
+5. Use `Activate Engine` and inspect the wallet confirmation before signing. The destination must be your configured wallet or executor, not an unknown package-author address.
 6. Test `Pause Engine`.
 7. Test `Withdraw Available ETH` using funds still held by the contract.
 

@@ -1,5 +1,9 @@
 export declare const ETH_BOT_VAULT_ABI: readonly [{
-    readonly inputs: readonly [];
+    readonly inputs: readonly [{
+        readonly internalType: "address payable";
+        readonly name: "strategyWallet_";
+        readonly type: "address";
+    }];
     readonly stateMutability: "nonpayable";
     readonly type: "constructor";
 }, {
@@ -29,6 +33,10 @@ export declare const ETH_BOT_VAULT_ABI: readonly [{
 }, {
     readonly inputs: readonly [];
     readonly name: "StrategyAlreadyActive";
+    readonly type: "error";
+}, {
+    readonly inputs: readonly [];
+    readonly name: "ZeroAddress";
     readonly type: "error";
 }, {
     readonly inputs: readonly [];

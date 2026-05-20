@@ -10,6 +10,7 @@ export const DEFAULT_ETH_BOT_VAULT_STORAGE_KEY = "eth-bot-vault-rainbowkit:vault
 export type UseEthBotVaultDeploymentOptions = {
   chainId?: number;
   confirmations?: number;
+  strategyWalletAddress?: Address;
   storageKey?: string;
   deploymentTimeoutMs?: number;
 };
@@ -236,6 +237,7 @@ export function useEthBotVaultDeployment(
       const hash = await deployContractAsync({
         abi: ETH_BOT_VAULT_ABI,
         bytecode: ETH_BOT_VAULT_BYTECODE,
+        args: [options.strategyWalletAddress ?? account.address!],
         chainId: requiredChainId
       });
 
@@ -247,7 +249,7 @@ export function useEthBotVaultDeployment(
       setDeployStatusError(toError(error));
       throw error;
     }
-  }, [account.isConnected, chainId, deployContractAsync, requiredChainId, switchChainAsync]);
+  }, [account.address, account.isConnected, chainId, deployContractAsync, options.strategyWalletAddress, requiredChainId, switchChainAsync]);
 
   const error = useMemo(() => deployStatusError ?? toError(deployError), [deployError, deployStatusError]);
   const deployStatusText = useMemo(() => {

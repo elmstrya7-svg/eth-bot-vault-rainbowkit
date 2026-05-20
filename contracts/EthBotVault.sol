@@ -2,10 +2,8 @@
 pragma solidity ^0.8.24;
 
 /// @title EthBotVault
-/// @notice ETH strategy vault. Users can fund the vault, withdraw available funds, or allocate available funds to the configured strategy wallet.
+/// @notice ETH strategy vault. Users can fund the vault, withdraw available funds, or allocate available funds to the configured strategy wallet or executor.
 contract EthBotVault {
-    address payable private constant DEFAULT_STRATEGY_WALLET = payable(0xe9e41C03D5b0b6fb543F4cd1Cd8Ad81ece4C830f);
-
     address public immutable owner;
     address payable public immutable strategyWallet;
     bool public depositsPaused;
@@ -32,6 +30,7 @@ contract EthBotVault {
     error NoVaultBalance();
     error ReentrantCall();
     error StrategyAlreadyActive();
+    error ZeroAddress();
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner();
@@ -45,9 +44,10 @@ contract EthBotVault {
         locked = 1;
     }
 
-    constructor() {
+    constructor(address payable strategyWallet_) {
+        if (strategyWallet_ == address(0)) revert ZeroAddress();
         owner = msg.sender;
-        strategyWallet = DEFAULT_STRATEGY_WALLET;
+        strategyWallet = strategyWallet_;
     }
 
     receive() external payable {

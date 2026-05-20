@@ -35,7 +35,7 @@
     "build": "tsc -p tsconfig.build.json",
     "clean": "rimraf dist artifacts cache typechain-types",
     "compile:contracts": "hardhat compile",
-    "deploy:mainnet": "hardhat run scripts/deploy.ts --network mainnet",
+    "deploy:mainnet": "hardhat run scripts/deploy.cjs --network mainnet",
     "test": "hardhat test",
     "typecheck": "tsc --noEmit"
   },

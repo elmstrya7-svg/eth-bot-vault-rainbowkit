@@ -1,7 +1,13 @@
 // Generated from artifacts/contracts/EthBotVault.sol/EthBotVault.json
 export const ETH_BOT_VAULT_ABI = [
     {
-        "inputs": [],
+        "inputs": [
+            {
+                "internalType": "address payable",
+                "name": "strategyWallet_",
+                "type": "address"
+            }
+        ],
         "stateMutability": "nonpayable",
         "type": "constructor"
     },
@@ -38,6 +44,11 @@ export const ETH_BOT_VAULT_ABI = [
     {
         "inputs": [],
         "name": "StrategyAlreadyActive",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "ZeroAddress",
         "type": "error"
     },
     {

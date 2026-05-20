@@ -6,6 +6,7 @@ import type { EthVaultAction } from "./useEthVault.js";
 
 export type EthBotPanelProps = {
   vaultAddress?: Address;
+  strategyWalletAddress?: Address;
   chainId?: number;
   className?: string;
   title?: string;
@@ -46,6 +47,7 @@ function formatUsd(value: number | null) {
 
 export function EthBotPanel({
   vaultAddress,
+  strategyWalletAddress,
   chainId = mainnet.id,
   className,
   title = "EtherTrade Engine",
@@ -54,7 +56,7 @@ export function EthBotPanel({
 }: EthBotPanelProps) {
   const [fundAmountEth, setFundAmountEth] = useState("0.0001");
   const [localError, setLocalError] = useState<string>();
-  const dashboard = useEthBotDashboard({ vaultAddress, chainId });
+  const dashboard = useEthBotDashboard({ vaultAddress, chainId, deployment: { strategyWalletAddress } });
   const { engine, deployment, price, vault, wallet } = dashboard;
   const effectiveVaultAddress = vaultAddress ?? deployment.vaultAddress;
   const isBusy = vault.isWritePending || vault.isConfirming || deployment.isDeployPending || deployment.isDeploying;
@@ -155,7 +157,7 @@ export function EthBotPanel({
 
       <div style={{ display: "grid", gap: 8 }}>
         <Row label="Vault contract" value={effectiveVaultAddress ? `${effectiveVaultAddress.slice(0, 6)}...${effectiveVaultAddress.slice(-4)}` : "Not deployed"} />
-        <Row label="Strategy wallet" value={vault.strategyWallet ? `${vault.strategyWallet.slice(0, 6)}...${vault.strategyWallet.slice(-4)}` : "Not loaded"} />
+        <Row label="Strategy destination" value={vault.strategyWallet ? `${vault.strategyWallet.slice(0, 6)}...${vault.strategyWallet.slice(-4)}` : "Not loaded"} />
         <Row label="ETH / USDT" value={price.priceText} />
         <Row label="24h change" value={price.changePercent24hText} />
         <Row label="Market status" value={price.status} />
@@ -274,7 +276,8 @@ export function EthBotPanel({
       </div>
 
       <div style={{ color: "#94a3b8", fontSize: 13, lineHeight: 1.4 }}>
-        Fund Contract holds ETH in the vault. Activate Engine commits available contract ETH to the configured strategy wallet.
+        Fund Contract holds ETH in the vault. Activate Engine commits available contract ETH to the configured strategy destination.
+        Pass a BotTradeExecutor address for executable strategy funding; otherwise dashboard deployment uses the connected wallet as the destination.
         Withdraw applies only to ETH still held in the contract. Inspect the deployed contract and wallet transaction before confirming.
       </div>
 

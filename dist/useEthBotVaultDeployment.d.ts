@@ -3,6 +3,7 @@ export declare const DEFAULT_ETH_BOT_VAULT_STORAGE_KEY = "eth-bot-vault-rainbowk
 export type UseEthBotVaultDeploymentOptions = {
     chainId?: number;
     confirmations?: number;
+    strategyWalletAddress?: Address;
     storageKey?: string;
     deploymentTimeoutMs?: number;
 };
