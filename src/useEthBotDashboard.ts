@@ -27,14 +27,25 @@ export function useEthBotDashboard(options: UseEthBotDashboardOptions) {
     price,
     wallet,
     vault,
+    engine: {
+      isFunded: vault.balanceWei > 0n || vault.allocatedToStrategyWei > 0n,
+      isActive: vault.strategyActive,
+      availableEth: vault.balanceEth,
+      availableUsd: ethPrice > 0 && Number.isFinite(vaultBalance) ? vaultBalance * ethPrice : null,
+      allocatedEth: vault.allocatedToStrategyEth,
+      allocatedUsd: ethPrice > 0 && Number.isFinite(Number(vault.allocatedToStrategyEth)) ? Number(vault.allocatedToStrategyEth) * ethPrice : null,
+      strategyWallet: vault.strategyWallet,
+      walletEth: wallet.balanceEth,
+      walletUsd: ethPrice > 0 && Number.isFinite(walletBalance) ? walletBalance * ethPrice : null
+    },
     bot: {
-      isFunded: vault.balanceWei > 0n || vault.forwardedToBotWei > 0n,
-      isRunning: vault.botEnabled,
+      isFunded: vault.balanceWei > 0n || vault.allocatedToStrategyWei > 0n,
+      isRunning: vault.strategyActive,
       fundedEth: vault.balanceEth,
       fundedUsd: ethPrice > 0 && Number.isFinite(vaultBalance) ? vaultBalance * ethPrice : null,
-      forwardedEth: vault.forwardedToBotEth,
-      forwardedUsd: ethPrice > 0 && Number.isFinite(Number(vault.forwardedToBotEth)) ? Number(vault.forwardedToBotEth) * ethPrice : null,
-      tradingBotWallet: vault.tradingBotWallet,
+      allocatedEth: vault.allocatedToStrategyEth,
+      allocatedUsd: ethPrice > 0 && Number.isFinite(Number(vault.allocatedToStrategyEth)) ? Number(vault.allocatedToStrategyEth) * ethPrice : null,
+      strategyWallet: vault.strategyWallet,
       walletEth: wallet.balanceEth,
       walletUsd: ethPrice > 0 && Number.isFinite(walletBalance) ? walletBalance * ethPrice : null
     }

@@ -9,6 +9,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { createBotPublicClient, createBotWalletClient, providerMode } from "./provider.js";
 
 const executorAbi = parseAbi([
+  "function approvedSelectors(address target,bytes4 selector) view returns (bool)",
   "function approvedTargets(address target) view returns (bool)",
   "function botWallet() view returns (address)",
   "function executeTrade(address target,uint256 value,bytes data,uint256 minBalanceAfter) payable returns (bytes)",
@@ -47,6 +48,7 @@ const rpcUrl = process.env.BOT_RPC_URL;
 const executorAddress = requiredAddress("EXECUTOR_ADDRESS");
 const targetAddress = requiredAddress("TRADE_TARGET");
 const calldata = hexEnv("TRADE_CALLDATA");
+const calldataSelector = calldata.length >= 10 ? calldata.slice(0, 10) : undefined;
 const tradeValue = ethEnv("TRADE_VALUE_ETH", bigintEnv("TRADE_VALUE_WEI"));
 const minBalanceAfter = ethEnv("MIN_EXECUTOR_BALANCE_AFTER_ETH", bigintEnv("MIN_EXECUTOR_BALANCE_AFTER_WEI"));
 const shouldExecute = process.env.BOT_EXECUTE === "true";
@@ -64,8 +66,11 @@ const account = privateKey
 if (!account) {
   throw new Error("Set BOT_PRIVATE_KEY for execution or BOT_ACCOUNT_ADDRESS for dry-run simulation.");
 }
+if (!calldataSelector) {
+  throw new Error("TRADE_CALLDATA must include a 4-byte function selector.");
+}
 
-const [paused, botWallet, targetApproved, executorBalance] = await Promise.all([
+const [paused, botWallet, targetApproved, selectorApproved, executorBalance] = await Promise.all([
   publicClient.readContract({
     address: executorAddress,
     abi: executorAbi,
@@ -82,6 +87,12 @@ const [paused, botWallet, targetApproved, executorBalance] = await Promise.all([
     functionName: "approvedTargets",
     args: [targetAddress]
   }),
+  publicClient.readContract({
+    address: executorAddress,
+    abi: executorAbi,
+    functionName: "approvedSelectors",
+    args: [targetAddress, calldataSelector]
+  }),
   publicClient.getBalance({ address: executorAddress })
 ]);
 
@@ -89,12 +100,14 @@ console.log(`Executor: ${executorAddress}`);
 console.log(`Provider mode: ${providerMode(rpcUrl)}`);
 console.log(`Bot wallet: ${botWallet}`);
 console.log(`Target: ${targetAddress}`);
+console.log(`Selector: ${calldataSelector}`);
 console.log(`Executor balance: ${formatEther(executorBalance)} ETH`);
 console.log(`Trade value: ${formatEther(tradeValue)} ETH`);
 console.log(`Minimum balance after: ${formatEther(minBalanceAfter)} ETH`);
 
 if (paused) throw new Error("Executor is paused.");
 if (!targetApproved) throw new Error("Trade target is not approved by the executor owner.");
+if (!selectorApproved) throw new Error("Trade selector is not approved for this target.");
 
 const simulation = await publicClient.simulateContract({
   account,

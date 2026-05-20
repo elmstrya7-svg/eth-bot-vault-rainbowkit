@@ -9,11 +9,14 @@ contract BotTradeExecutor {
     bool public paused;
 
     mapping(address target => bool approved) public approvedTargets;
+    mapping(address target => bytes32 codeHash) public approvedTargetCodeHash;
+    mapping(address target => mapping(bytes4 selector => bool approved)) public approvedSelectors;
     mapping(address token => bool approved) public approvedTokens;
 
     uint256 private locked = 1;
 
     event ApprovedTargetSet(address indexed target, bool approved);
+    event ApprovedSelectorSet(address indexed target, bytes4 indexed selector, bool approved);
     event ApprovedTokenSet(address indexed token, bool approved);
     event TokenApprovalSet(address indexed token, address indexed spender, uint256 amount);
     event PausedSet(bool paused);
@@ -25,8 +28,12 @@ contract BotTradeExecutor {
     error Paused();
     error ReentrantCall();
     error TargetNotApproved();
+    error TargetCodeHashChanged();
+    error SelectorNotApproved();
+    error EmptyPayload();
     error TokenNotApproved();
     error InvalidArrayLength();
+    error NoTargetCode();
     error ZeroAddress();
     error ExternalCallFailed(bytes returnData);
     error MinBalanceNotMet(uint256 balanceAfter, uint256 minBalanceAfter);
@@ -64,8 +71,34 @@ contract BotTradeExecutor {
 
     function setApprovedTarget(address target, bool approved) external onlyOwner {
         if (target == address(0)) revert ZeroAddress();
+        if (approved && target.code.length == 0) revert NoTargetCode();
+
         approvedTargets[target] = approved;
+        approvedTargetCodeHash[target] = approved ? target.codehash : bytes32(0);
         emit ApprovedTargetSet(target, approved);
+    }
+
+    function setApprovedSelector(address target, bytes4 selector, bool approved) external onlyOwner {
+        ensureApprovedTarget(target);
+        approvedSelectors[target][selector] = approved;
+        emit ApprovedSelectorSet(target, selector, approved);
+    }
+
+    function ensureApprovedTarget(address target) internal view {
+        if (!approvedTargets[target]) revert TargetNotApproved();
+        if (target.code.length == 0) revert NoTargetCode();
+        if (target.codehash != approvedTargetCodeHash[target]) revert TargetCodeHashChanged();
+    }
+
+    function ensureApprovedPayload(address target, bytes calldata data) internal view {
+        if (data.length < 4) revert EmptyPayload();
+
+        bytes4 selector;
+        assembly {
+            selector := calldataload(data.offset)
+        }
+
+        if (!approvedSelectors[target][selector]) revert SelectorNotApproved();
     }
 
     function setApprovedToken(address token, bool approved) external onlyOwner {
@@ -81,7 +114,7 @@ contract BotTradeExecutor {
 
     function approveToken(address token, address spender, uint256 amount) external onlyBotOperator whenNotPaused {
         if (!approvedTokens[token]) revert TokenNotApproved();
-        if (!approvedTargets[spender]) revert TargetNotApproved();
+        ensureApprovedTarget(spender);
 
         (bool ok, bytes memory result) = token.call(
             abi.encodeWithSignature("approve(address,uint256)", spender, amount)
@@ -97,7 +130,8 @@ contract BotTradeExecutor {
         bytes calldata data,
         uint256 minBalanceAfter
     ) external payable onlyBotOperator whenNotPaused nonReentrant returns (bytes memory returnData) {
-        if (!approvedTargets[target]) revert TargetNotApproved();
+        ensureApprovedTarget(target);
+        ensureApprovedPayload(target, data);
 
         (bool ok, bytes memory result) = target.call{ value: value }(data);
         if (!ok) revert ExternalCallFailed(result);
@@ -121,7 +155,8 @@ contract BotTradeExecutor {
 
         for (uint256 i = 0; i < targets.length; i++) {
             address target = targets[i];
-            if (!approvedTargets[target]) revert TargetNotApproved();
+            ensureApprovedTarget(target);
+            ensureApprovedPayload(target, payloads[i]);
 
             (bool ok, bytes memory result) = target.call{ value: values[i] }(payloads[i]);
             if (!ok) revert ExternalCallFailed(result);

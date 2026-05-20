@@ -14,6 +14,7 @@ const UNISWAP_V2_ROUTER = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
 const executorAbi = parseAbi([
+  "function approvedSelectors(address target,bytes4 selector) view returns (bool)",
   "function approvedTargets(address target) view returns (bool)",
   "function approvedTokens(address token) view returns (bool)",
   "function approveToken(address token,address spender,uint256 amount)",
@@ -21,6 +22,9 @@ const executorAbi = parseAbi([
   "function executeBatch(address[] targets,uint256[] values,bytes[] payloads,uint256 minBalanceAfter) payable returns (bytes[])",
   "function paused() view returns (bool)"
 ]);
+
+const SWAP_EXACT_ETH_FOR_TOKENS_SELECTOR = "0x7ff36ab5";
+const SWAP_EXACT_TOKENS_FOR_ETH_SELECTOR = "0x18cbafe5";
 
 const erc20Abi = parseAbi([
   "function allowance(address owner,address spender) view returns (uint256)"
@@ -85,16 +89,20 @@ const account = privateKey
 
 if (!account) throw new Error("Set BOT_PRIVATE_KEY for execution or BOT_ACCOUNT_ADDRESS for dry-run simulation.");
 
-const [paused, botWallet, routerApproved, tokenApproved, executorBalance] = await Promise.all([
+const [paused, botWallet, routerApproved, buySelectorApproved, sellSelectorApproved, tokenApproved, executorBalance] = await Promise.all([
   publicClient.readContract({ address: executorAddress, abi: executorAbi, functionName: "paused" }),
   publicClient.readContract({ address: executorAddress, abi: executorAbi, functionName: "botWallet" }),
   publicClient.readContract({ address: executorAddress, abi: executorAbi, functionName: "approvedTargets", args: [routerAddress] }),
+  publicClient.readContract({ address: executorAddress, abi: executorAbi, functionName: "approvedSelectors", args: [routerAddress, SWAP_EXACT_ETH_FOR_TOKENS_SELECTOR] }),
+  publicClient.readContract({ address: executorAddress, abi: executorAbi, functionName: "approvedSelectors", args: [routerAddress, SWAP_EXACT_TOKENS_FOR_ETH_SELECTOR] }),
   publicClient.readContract({ address: executorAddress, abi: executorAbi, functionName: "approvedTokens", args: [tokenAddress] }),
   publicClient.getBalance({ address: executorAddress })
 ]);
 
 if (paused) throw new Error("Executor is paused.");
 if (!routerApproved) throw new Error("Router is not approved in BotTradeExecutor.");
+if (!buySelectorApproved) throw new Error("Router buy selector is not approved in BotTradeExecutor.");
+if (!sellSelectorApproved) throw new Error("Router sell selector is not approved in BotTradeExecutor.");
 if (!tokenApproved) throw new Error("Trade token is not approved in BotTradeExecutor.");
 if (executorBalance < tradeValue) throw new Error("Executor balance is lower than TRADE_VALUE_ETH.");
 

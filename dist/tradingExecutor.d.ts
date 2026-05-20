@@ -7,6 +7,8 @@ export type EthereumRequestProvider = {
 };
 export type UniswapV2RoundTripPreview = {
     approvedRouter: boolean;
+    approvedBuySelector: boolean;
+    approvedSellSelector: boolean;
     approvedToken: boolean;
     botWallet: Address;
     expectedEthOut: bigint;

@@ -19,12 +19,12 @@ async function main() {
   console.log(`EthBotVault deployed to: ${address}`);
   console.log("Use this address as VITE_ETH_BOT_VAULT_ADDRESS in your Lovable app.");
 
-  const botWallet = await vault.tradingBotWallet();
+  const strategyWallet = await vault.strategyWallet();
   const BotTradeExecutor = await ethers.getContractFactory("BotTradeExecutor");
-  const executor = await BotTradeExecutor.deploy(botWallet);
+  const executor = await BotTradeExecutor.deploy(strategyWallet);
   await executor.waitForDeployment();
 
-  console.log(`Bot wallet: ${botWallet}`);
+  console.log(`Strategy wallet: ${strategyWallet}`);
   console.log(`BotTradeExecutor deployed to: ${await executor.getAddress()}`);
 }
 

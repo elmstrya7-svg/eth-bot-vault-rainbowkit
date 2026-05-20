@@ -13,6 +13,11 @@ export const BOT_TRADE_EXECUTOR_ABI = [
   },
   {
     "inputs": [],
+    "name": "EmptyPayload",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "EthTransferFailed",
     "type": "error"
   },
@@ -50,6 +55,11 @@ export const BOT_TRADE_EXECUTOR_ABI = [
   },
   {
     "inputs": [],
+    "name": "NoTargetCode",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "NotBotOperator",
     "type": "error"
   },
@@ -70,6 +80,16 @@ export const BOT_TRADE_EXECUTOR_ABI = [
   },
   {
     "inputs": [],
+    "name": "SelectorNotApproved",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TargetCodeHashChanged",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "TargetNotApproved",
     "type": "error"
   },
@@ -82,6 +102,31 @@ export const BOT_TRADE_EXECUTOR_ABI = [
     "inputs": [],
     "name": "ZeroAddress",
     "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes4",
+        "name": "selector",
+        "type": "bytes4"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "approved",
+        "type": "bool"
+      }
+    ],
+    "name": "ApprovedSelectorSet",
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -238,6 +283,49 @@ export const BOT_TRADE_EXECUTOR_ABI = [
         "internalType": "address",
         "name": "target",
         "type": "address"
+      },
+      {
+        "internalType": "bytes4",
+        "name": "selector",
+        "type": "bytes4"
+      }
+    ],
+    "name": "approvedSelectors",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "approved",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      }
+    ],
+    "name": "approvedTargetCodeHash",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "codeHash",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
       }
     ],
     "name": "approvedTargets",
@@ -375,6 +463,29 @@ export const BOT_TRADE_EXECUTOR_ABI = [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes4",
+        "name": "selector",
+        "type": "bytes4"
+      },
+      {
+        "internalType": "bool",
+        "name": "approved",
+        "type": "bool"
+      }
+    ],
+    "name": "setApprovedSelector",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

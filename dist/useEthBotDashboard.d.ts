@@ -12,14 +12,25 @@ export declare function useEthBotDashboard(options: UseEthBotDashboardOptions): 
     price: import("./useEthPriceTicker.js").UseEthPriceTickerResult;
     wallet: import("./useWalletEthBalance.js").UseWalletEthBalanceResult;
     vault: import("./useEthVault.js").UseEthVaultResult;
+    engine: {
+        isFunded: boolean;
+        isActive: boolean;
+        availableEth: string;
+        availableUsd: number | null;
+        allocatedEth: string;
+        allocatedUsd: number | null;
+        strategyWallet: `0x${string}` | undefined;
+        walletEth: string;
+        walletUsd: number | null;
+    };
     bot: {
         isFunded: boolean;
         isRunning: boolean;
         fundedEth: string;
         fundedUsd: number | null;
-        forwardedEth: string;
-        forwardedUsd: number | null;
-        tradingBotWallet: `0x${string}` | undefined;
+        allocatedEth: string;
+        allocatedUsd: number | null;
+        strategyWallet: `0x${string}` | undefined;
         walletEth: string;
         walletUsd: number | null;
     };

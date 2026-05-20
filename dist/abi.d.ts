@@ -28,33 +28,12 @@ export declare const ETH_BOT_VAULT_ABI: readonly [{
     readonly type: "error";
 }, {
     readonly inputs: readonly [];
-    readonly name: "ZeroAmount";
+    readonly name: "StrategyAlreadyActive";
     readonly type: "error";
 }, {
-    readonly anonymous: false;
-    readonly inputs: readonly [{
-        readonly indexed: true;
-        readonly internalType: "address";
-        readonly name: "user";
-        readonly type: "address";
-    }, {
-        readonly indexed: false;
-        readonly internalType: "uint256";
-        readonly name: "amount";
-        readonly type: "uint256";
-    }];
-    readonly name: "BotStarted";
-    readonly type: "event";
-}, {
-    readonly anonymous: false;
-    readonly inputs: readonly [{
-        readonly indexed: true;
-        readonly internalType: "address";
-        readonly name: "user";
-        readonly type: "address";
-    }];
-    readonly name: "BotStopped";
-    readonly type: "event";
+    readonly inputs: readonly [];
+    readonly name: "ZeroAmount";
+    readonly type: "error";
 }, {
     readonly anonymous: false;
     readonly inputs: readonly [{
@@ -93,8 +72,53 @@ export declare const ETH_BOT_VAULT_ABI: readonly [{
         readonly name: "amount";
         readonly type: "uint256";
     }];
+    readonly name: "StrategyEngineActivated";
+    readonly type: "event";
+}, {
+    readonly anonymous: false;
+    readonly inputs: readonly [{
+        readonly indexed: true;
+        readonly internalType: "address";
+        readonly name: "user";
+        readonly type: "address";
+    }];
+    readonly name: "StrategyEngineDeactivated";
+    readonly type: "event";
+}, {
+    readonly anonymous: false;
+    readonly inputs: readonly [{
+        readonly indexed: true;
+        readonly internalType: "address";
+        readonly name: "user";
+        readonly type: "address";
+    }, {
+        readonly indexed: false;
+        readonly internalType: "uint256";
+        readonly name: "amount";
+        readonly type: "uint256";
+    }];
     readonly name: "Withdrawn";
     readonly type: "event";
+}, {
+    readonly inputs: readonly [];
+    readonly name: "activateStrategyEngine";
+    readonly outputs: readonly [];
+    readonly stateMutability: "nonpayable";
+    readonly type: "function";
+}, {
+    readonly inputs: readonly [{
+        readonly internalType: "address";
+        readonly name: "user";
+        readonly type: "address";
+    }];
+    readonly name: "allocatedToStrategy";
+    readonly outputs: readonly [{
+        readonly internalType: "uint256";
+        readonly name: "amount";
+        readonly type: "uint256";
+    }];
+    readonly stateMutability: "view";
+    readonly type: "function";
 }, {
     readonly inputs: readonly [{
         readonly internalType: "address";
@@ -110,18 +134,10 @@ export declare const ETH_BOT_VAULT_ABI: readonly [{
     readonly stateMutability: "view";
     readonly type: "function";
 }, {
-    readonly inputs: readonly [{
-        readonly internalType: "address";
-        readonly name: "user";
-        readonly type: "address";
-    }];
-    readonly name: "botEnabled";
-    readonly outputs: readonly [{
-        readonly internalType: "bool";
-        readonly name: "enabled";
-        readonly type: "bool";
-    }];
-    readonly stateMutability: "view";
+    readonly inputs: readonly [];
+    readonly name: "deactivateStrategyEngine";
+    readonly outputs: readonly [];
+    readonly stateMutability: "nonpayable";
     readonly type: "function";
 }, {
     readonly inputs: readonly [];
@@ -136,20 +152,6 @@ export declare const ETH_BOT_VAULT_ABI: readonly [{
         readonly internalType: "bool";
         readonly name: "";
         readonly type: "bool";
-    }];
-    readonly stateMutability: "view";
-    readonly type: "function";
-}, {
-    readonly inputs: readonly [{
-        readonly internalType: "address";
-        readonly name: "user";
-        readonly type: "address";
-    }];
-    readonly name: "forwardedToBot";
-    readonly outputs: readonly [{
-        readonly internalType: "uint256";
-        readonly name: "amount";
-        readonly type: "uint256";
     }];
     readonly stateMutability: "view";
     readonly type: "function";
@@ -174,16 +176,38 @@ export declare const ETH_BOT_VAULT_ABI: readonly [{
     readonly stateMutability: "nonpayable";
     readonly type: "function";
 }, {
-    readonly inputs: readonly [];
-    readonly name: "startBot";
-    readonly outputs: readonly [];
-    readonly stateMutability: "nonpayable";
+    readonly inputs: readonly [{
+        readonly internalType: "address";
+        readonly name: "user";
+        readonly type: "address";
+    }];
+    readonly name: "strategyActive";
+    readonly outputs: readonly [{
+        readonly internalType: "bool";
+        readonly name: "enabled";
+        readonly type: "bool";
+    }];
+    readonly stateMutability: "view";
     readonly type: "function";
 }, {
     readonly inputs: readonly [];
-    readonly name: "stopBot";
-    readonly outputs: readonly [];
-    readonly stateMutability: "nonpayable";
+    readonly name: "strategyWallet";
+    readonly outputs: readonly [{
+        readonly internalType: "address payable";
+        readonly name: "";
+        readonly type: "address";
+    }];
+    readonly stateMutability: "view";
+    readonly type: "function";
+}, {
+    readonly inputs: readonly [];
+    readonly name: "totalAllocatedToStrategy";
+    readonly outputs: readonly [{
+        readonly internalType: "uint256";
+        readonly name: "";
+        readonly type: "uint256";
+    }];
+    readonly stateMutability: "view";
     readonly type: "function";
 }, {
     readonly inputs: readonly [];
@@ -192,26 +216,6 @@ export declare const ETH_BOT_VAULT_ABI: readonly [{
         readonly internalType: "uint256";
         readonly name: "";
         readonly type: "uint256";
-    }];
-    readonly stateMutability: "view";
-    readonly type: "function";
-}, {
-    readonly inputs: readonly [];
-    readonly name: "totalForwardedToBot";
-    readonly outputs: readonly [{
-        readonly internalType: "uint256";
-        readonly name: "";
-        readonly type: "uint256";
-    }];
-    readonly stateMutability: "view";
-    readonly type: "function";
-}, {
-    readonly inputs: readonly [];
-    readonly name: "tradingBotWallet";
-    readonly outputs: readonly [{
-        readonly internalType: "address payable";
-        readonly name: "";
-        readonly type: "address";
     }];
     readonly stateMutability: "view";
     readonly type: "function";

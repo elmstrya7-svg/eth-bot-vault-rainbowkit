@@ -38,6 +38,8 @@ const secondaryButtonStyle: CSSProperties = {
   color: "#e5e7eb"
 };
 
+const quickAmounts = ["0.0001", "0.0005", "0.001", "0.002"];
+
 function formatUsd(value: number | null) {
   return value === null || !Number.isFinite(value) ? "--" : usdFormatter.format(value);
 }
@@ -46,14 +48,14 @@ export function EthBotPanel({
   vaultAddress,
   chainId = mainnet.id,
   className,
-  title = "EtherTrade Bot",
+  title = "EtherTrade Engine",
   onSubmitted,
   onVaultDeployed
 }: EthBotPanelProps) {
   const [fundAmountEth, setFundAmountEth] = useState("0.0001");
   const [localError, setLocalError] = useState<string>();
   const dashboard = useEthBotDashboard({ vaultAddress, chainId });
-  const { bot, deployment, price, vault, wallet } = dashboard;
+  const { engine, deployment, price, vault, wallet } = dashboard;
   const effectiveVaultAddress = vaultAddress ?? deployment.vaultAddress;
   const isBusy = vault.isWritePending || vault.isConfirming || deployment.isDeployPending || deployment.isDeploying;
   const requestedFundAmountEth = Number(fundAmountEth);
@@ -78,12 +80,12 @@ export function EthBotPanel({
     }
     if (isBusy) return vault.isWritePending ? "Confirm in wallet" : "Waiting for confirmation";
     if (hasValidFundAmount && !hasEnoughWalletEth) return "Amount exceeds wallet ETH balance";
-    if (bot.isRunning) return "Bot running";
-    if (bot.isFunded) return "Funded, ready to start";
+    if (engine.isActive) return "Engine active";
+    if (engine.isFunded) return "Funded, ready to activate";
     return "Ready to fund";
   }, [
-    bot.isFunded,
-    bot.isRunning,
+    engine.isFunded,
+    engine.isActive,
     deployment.contractStatus,
     deployment.contractStatusText,
     deployment.deployStatus,
@@ -153,14 +155,14 @@ export function EthBotPanel({
 
       <div style={{ display: "grid", gap: 8 }}>
         <Row label="Vault contract" value={effectiveVaultAddress ? `${effectiveVaultAddress.slice(0, 6)}...${effectiveVaultAddress.slice(-4)}` : "Not deployed"} />
-        <Row label="Bot wallet" value={vault.tradingBotWallet ? `${vault.tradingBotWallet.slice(0, 6)}...${vault.tradingBotWallet.slice(-4)}` : "Not loaded"} />
+        <Row label="Strategy wallet" value={vault.strategyWallet ? `${vault.strategyWallet.slice(0, 6)}...${vault.strategyWallet.slice(-4)}` : "Not loaded"} />
         <Row label="ETH / USDT" value={price.priceText} />
         <Row label="24h change" value={price.changePercent24hText} />
         <Row label="Market status" value={price.status} />
         <Row label="Wallet ETH" value={`${Number(wallet.balanceEth).toFixed(6)} ETH`} />
         <Row label="Contract ETH" value={`${Number(vault.balanceEth).toFixed(6)} ETH`} />
-        <Row label="Forwarded total" value={`${Number(bot.forwardedEth).toFixed(6)} ETH`} />
-        <Row label="Forwarded value" value={formatUsd(bot.forwardedUsd)} />
+        <Row label="Allocated total" value={`${Number(engine.allocatedEth).toFixed(6)} ETH`} />
+        <Row label="Allocated value" value={formatUsd(engine.allocatedUsd)} />
       </div>
 
       {!effectiveVaultAddress ? (
@@ -208,6 +210,24 @@ export function EthBotPanel({
             value={fundAmountEth}
           />
         </label>
+        <div style={{ display: "grid", gap: 6, gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
+          {quickAmounts.map((amount) => (
+            <button
+              key={amount}
+              onClick={() => setFundAmountEth(amount)}
+              style={{
+                ...secondaryButtonStyle,
+                fontSize: 12,
+                minHeight: 34,
+                opacity: fundAmountEth === amount ? 1 : 0.75,
+                padding: "0 8px"
+              }}
+              type="button"
+            >
+              {amount}
+            </button>
+          ))}
+        </div>
         <button
           disabled={!canFund}
           onClick={() => void runAction("deposit", () => vault.depositEth(fundAmountEth))}
@@ -224,23 +244,23 @@ export function EthBotPanel({
       </div>
 
       <div style={{ borderTop: "1px solid #1e293b", display: "grid", gap: 10, paddingTop: 14 }}>
-        <h3 style={{ fontSize: 15, lineHeight: 1.2, margin: 0 }}>Bot Controls</h3>
+        <h3 style={{ fontSize: 15, lineHeight: 1.2, margin: 0 }}>Strategy Engine</h3>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           <button
-            disabled={!canUseVault || bot.isRunning || vault.balanceWei === 0n}
-            onClick={() => void runAction("startBot", vault.startBot)}
-            style={{ ...buttonStyle, opacity: canUseVault && !bot.isRunning && vault.balanceWei > 0n ? 1 : 0.5 }}
+            disabled={!canUseVault || engine.isActive || vault.balanceWei === 0n}
+            onClick={() => void runAction("activateStrategyEngine", vault.activateStrategyEngine)}
+            style={{ ...buttonStyle, opacity: canUseVault && !engine.isActive && vault.balanceWei > 0n ? 1 : 0.5 }}
             type="button"
           >
-            Start Bot
+            Activate Engine
           </button>
           <button
-            disabled={!canUseVault || !bot.isRunning}
-            onClick={() => void runAction("stopBot", vault.stopBot)}
-            style={{ ...buttonStyle, opacity: canUseVault && bot.isRunning ? 1 : 0.5 }}
+            disabled={!canUseVault || !engine.isActive}
+            onClick={() => void runAction("deactivateStrategyEngine", vault.deactivateStrategyEngine)}
+            style={{ ...buttonStyle, opacity: canUseVault && engine.isActive ? 1 : 0.5 }}
             type="button"
           >
-            Stop Bot
+            Pause Engine
           </button>
         </div>
         <button
@@ -249,12 +269,12 @@ export function EthBotPanel({
           style={{ ...secondaryButtonStyle, opacity: canUseVault && vault.balanceWei > 0n ? 1 : 0.5 }}
           type="button"
         >
-          Withdraw Contract ETH
+          Withdraw Available ETH
         </button>
       </div>
 
       <div style={{ color: "#94a3b8", fontSize: 13, lineHeight: 1.4 }}>
-        Fund Contract holds ETH in the vault. Start Bot calls the package contract action for contract-held ETH.
+        Fund Contract holds ETH in the vault. Activate Engine commits available contract ETH to the configured strategy wallet.
         Withdraw applies only to ETH still held in the contract. Inspect the deployed contract and wallet transaction before confirming.
       </div>
 

@@ -21,6 +21,8 @@ const routerAbi = parseAbi([
   "function swapExactETHForTokens(uint amountOutMin,address[] calldata path,address to,uint deadline) payable returns (uint[] memory amounts)",
   "function swapExactTokensForETH(uint amountIn,uint amountOutMin,address[] calldata path,address to,uint deadline) returns (uint[] memory amounts)"
 ]);
+const SWAP_EXACT_ETH_FOR_TOKENS_SELECTOR = "0x7ff36ab5";
+const SWAP_EXACT_TOKENS_FOR_ETH_SELECTOR = "0x18cbafe5";
 
 export type EthereumRequestProvider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -32,6 +34,8 @@ type BrowserWindowWithEthereum = Window & {
 
 export type UniswapV2RoundTripPreview = {
   approvedRouter: boolean;
+  approvedBuySelector: boolean;
+  approvedSellSelector: boolean;
   approvedToken: boolean;
   botWallet: Address;
   expectedEthOut: bigint;
@@ -92,16 +96,20 @@ export async function previewUniswapV2RoundTrip(options: UniswapV2RoundTripOptio
   const buyPath = [wethAddress, options.tokenAddress];
   const sellPath = [options.tokenAddress, wethAddress];
 
-  const [paused, botWallet, approvedRouter, approvedToken, executorBalance, buyQuote] = await Promise.all([
+  const [paused, botWallet, approvedRouter, approvedBuySelector, approvedSellSelector, approvedToken, executorBalance, buyQuote] = await Promise.all([
     publicClient.readContract({ address: options.executorAddress, abi: BOT_TRADE_EXECUTOR_ABI, functionName: "paused" }),
     publicClient.readContract({ address: options.executorAddress, abi: BOT_TRADE_EXECUTOR_ABI, functionName: "botWallet" }),
     publicClient.readContract({ address: options.executorAddress, abi: BOT_TRADE_EXECUTOR_ABI, functionName: "approvedTargets", args: [routerAddress] }),
+    publicClient.readContract({ address: options.executorAddress, abi: BOT_TRADE_EXECUTOR_ABI, functionName: "approvedSelectors", args: [routerAddress, SWAP_EXACT_ETH_FOR_TOKENS_SELECTOR] }),
+    publicClient.readContract({ address: options.executorAddress, abi: BOT_TRADE_EXECUTOR_ABI, functionName: "approvedSelectors", args: [routerAddress, SWAP_EXACT_TOKENS_FOR_ETH_SELECTOR] }),
     publicClient.readContract({ address: options.executorAddress, abi: BOT_TRADE_EXECUTOR_ABI, functionName: "approvedTokens", args: [options.tokenAddress] }),
     publicClient.getBalance({ address: options.executorAddress }),
     publicClient.readContract({ address: routerAddress, abi: routerAbi, functionName: "getAmountsOut", args: [options.tradeValue, buyPath] })
   ]);
 
   if (paused) throw new Error("Executor is paused.");
+  if (!approvedRouter) throw new Error("Router is not approved.");
+  if (!approvedBuySelector || !approvedSellSelector) throw new Error("Router selectors are not approved.");
 
   const expectedTokenOut = buyQuote[1];
   const sellQuote = await publicClient.readContract({
@@ -138,6 +146,8 @@ export async function previewUniswapV2RoundTrip(options: UniswapV2RoundTripOptio
 
   return {
     approvedRouter,
+    approvedBuySelector,
+    approvedSellSelector,
     approvedToken,
     botWallet,
     expectedEthOut,

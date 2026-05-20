@@ -51,7 +51,27 @@ describe("BotTradeExecutor", function () {
     await expectCustomError(executor.executeTrade(await target.getAddress(), 0, data, 0), "TargetNotApproved");
 
     await executor.setApprovedTarget(await target.getAddress(), true);
+    await executor.setApprovedSelector(await target.getAddress(), target.interface.getFunction("swapWithProfit").selector, true);
     await expectCustomError(executor.connect(outsider).executeTrade(await target.getAddress(), 0, data, 0), "NotBotOperator");
+  });
+
+  it("rejects approved targets without contract code", async function () {
+    const { executor, outsider } = await deployExecutor();
+
+    await expectCustomError(executor.setApprovedTarget(outsider.address, true), "NoTargetCode");
+  });
+
+  it("rejects execution payloads until their selector is approved", async function () {
+    const { botWallet, executor, target } = await deployExecutor();
+    const targetAddress = await target.getAddress();
+    const data = target.interface.encodeFunctionData("swapWithProfit", [0]);
+
+    await executor.setApprovedTarget(targetAddress, true);
+
+    await expectCustomError(executor.connect(botWallet).executeTrade(targetAddress, 0, data, 0), "SelectorNotApproved");
+
+    await executor.setApprovedSelector(targetAddress, target.interface.getFunction("swapWithProfit").selector, true);
+    await executor.connect(botWallet).executeTrade(targetAddress, 0, data, 0);
   });
 
   it("executes an approved simulated trade and enforces minimum balance", async function () {
@@ -62,6 +82,7 @@ describe("BotTradeExecutor", function () {
     await owner.sendTransaction({ to: targetAddress, value: ethers.parseEther("0.02") });
     await botWallet.sendTransaction({ to: executorAddress, value: ethers.parseEther("0.1") });
     await executor.setApprovedTarget(targetAddress, true);
+    await executor.setApprovedSelector(targetAddress, target.interface.getFunction("swapWithProfit").selector, true);
 
     const data = target.interface.encodeFunctionData("swapWithProfit", [ethers.parseEther("0.01")]);
 
@@ -83,6 +104,7 @@ describe("BotTradeExecutor", function () {
     await owner.sendTransaction({ to: targetAddress, value: ethers.parseEther("0.04") });
     await botWallet.sendTransaction({ to: executorAddress, value: ethers.parseEther("0.1") });
     await executor.setApprovedTarget(targetAddress, true);
+    await executor.setApprovedSelector(targetAddress, target.interface.getFunction("swapWithProfit").selector, true);
 
     const payload = target.interface.encodeFunctionData("swapWithProfit", [ethers.parseEther("0.01")]);
 
@@ -117,6 +139,7 @@ describe("BotTradeExecutor", function () {
     await expectCustomError(executor.connect(botWallet).approveToken(tokenAddress, targetAddress, amount), "TargetNotApproved");
 
     await executor.setApprovedTarget(targetAddress, true);
+    await executor.setApprovedSelector(targetAddress, target.interface.getFunction("pullToken").selector, true);
     await executor.connect(botWallet).approveToken(tokenAddress, targetAddress, amount);
 
     expect(await token.allowance(executorAddress, targetAddress)).to.equal(amount);

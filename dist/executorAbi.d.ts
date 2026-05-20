@@ -8,6 +8,10 @@ export declare const BOT_TRADE_EXECUTOR_ABI: readonly [{
     readonly type: "constructor";
 }, {
     readonly inputs: readonly [];
+    readonly name: "EmptyPayload";
+    readonly type: "error";
+}, {
+    readonly inputs: readonly [];
     readonly name: "EthTransferFailed";
     readonly type: "error";
 }, {
@@ -36,6 +40,10 @@ export declare const BOT_TRADE_EXECUTOR_ABI: readonly [{
     readonly type: "error";
 }, {
     readonly inputs: readonly [];
+    readonly name: "NoTargetCode";
+    readonly type: "error";
+}, {
+    readonly inputs: readonly [];
     readonly name: "NotBotOperator";
     readonly type: "error";
 }, {
@@ -52,6 +60,14 @@ export declare const BOT_TRADE_EXECUTOR_ABI: readonly [{
     readonly type: "error";
 }, {
     readonly inputs: readonly [];
+    readonly name: "SelectorNotApproved";
+    readonly type: "error";
+}, {
+    readonly inputs: readonly [];
+    readonly name: "TargetCodeHashChanged";
+    readonly type: "error";
+}, {
+    readonly inputs: readonly [];
     readonly name: "TargetNotApproved";
     readonly type: "error";
 }, {
@@ -62,6 +78,26 @@ export declare const BOT_TRADE_EXECUTOR_ABI: readonly [{
     readonly inputs: readonly [];
     readonly name: "ZeroAddress";
     readonly type: "error";
+}, {
+    readonly anonymous: false;
+    readonly inputs: readonly [{
+        readonly indexed: true;
+        readonly internalType: "address";
+        readonly name: "target";
+        readonly type: "address";
+    }, {
+        readonly indexed: true;
+        readonly internalType: "bytes4";
+        readonly name: "selector";
+        readonly type: "bytes4";
+    }, {
+        readonly indexed: false;
+        readonly internalType: "bool";
+        readonly name: "approved";
+        readonly type: "bool";
+    }];
+    readonly name: "ApprovedSelectorSet";
+    readonly type: "event";
 }, {
     readonly anonymous: false;
     readonly inputs: readonly [{
@@ -185,6 +221,38 @@ export declare const BOT_TRADE_EXECUTOR_ABI: readonly [{
         readonly internalType: "address";
         readonly name: "target";
         readonly type: "address";
+    }, {
+        readonly internalType: "bytes4";
+        readonly name: "selector";
+        readonly type: "bytes4";
+    }];
+    readonly name: "approvedSelectors";
+    readonly outputs: readonly [{
+        readonly internalType: "bool";
+        readonly name: "approved";
+        readonly type: "bool";
+    }];
+    readonly stateMutability: "view";
+    readonly type: "function";
+}, {
+    readonly inputs: readonly [{
+        readonly internalType: "address";
+        readonly name: "target";
+        readonly type: "address";
+    }];
+    readonly name: "approvedTargetCodeHash";
+    readonly outputs: readonly [{
+        readonly internalType: "bytes32";
+        readonly name: "codeHash";
+        readonly type: "bytes32";
+    }];
+    readonly stateMutability: "view";
+    readonly type: "function";
+}, {
+    readonly inputs: readonly [{
+        readonly internalType: "address";
+        readonly name: "target";
+        readonly type: "address";
     }];
     readonly name: "approvedTargets";
     readonly outputs: readonly [{
@@ -289,6 +357,24 @@ export declare const BOT_TRADE_EXECUTOR_ABI: readonly [{
         readonly type: "bool";
     }];
     readonly stateMutability: "view";
+    readonly type: "function";
+}, {
+    readonly inputs: readonly [{
+        readonly internalType: "address";
+        readonly name: "target";
+        readonly type: "address";
+    }, {
+        readonly internalType: "bytes4";
+        readonly name: "selector";
+        readonly type: "bytes4";
+    }, {
+        readonly internalType: "bool";
+        readonly name: "approved";
+        readonly type: "bool";
+    }];
+    readonly name: "setApprovedSelector";
+    readonly outputs: readonly [];
+    readonly stateMutability: "nonpayable";
     readonly type: "function";
 }, {
     readonly inputs: readonly [{

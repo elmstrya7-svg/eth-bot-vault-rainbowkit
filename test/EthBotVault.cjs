@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("EthBotVault", function () {
-  const tradingBotWallet = "0xe9e41C03D5b0b6fb543F4cd1Cd8Ad81ece4C830f";
+  const strategyWallet = "0xe9e41C03D5b0b6fb543F4cd1Cd8Ad81ece4C830f";
 
   async function deployVault() {
     const [owner, alice, bob] = await ethers.getSigners();
@@ -35,10 +35,10 @@ describe("EthBotVault", function () {
     expect(await vault.totalDeposits()).to.equal(ethers.parseEther("0.3"));
   });
 
-  it("exposes the configured bot wallet", async function () {
+  it("exposes the configured strategy wallet", async function () {
     const { vault } = await deployVault();
 
-    expect(await vault.tradingBotWallet()).to.equal(tradingBotWallet);
+    expect(await vault.strategyWallet()).to.equal(strategyWallet);
   });
 
   it("lets users withdraw only their own balance", async function () {
@@ -65,37 +65,37 @@ describe("EthBotVault", function () {
     expect(await vault.balances(alice.address)).to.equal(0n);
   });
 
-  it("forwards contract-held funds when a user starts the bot", async function () {
+  it("allocates contract-held funds when a user activates the engine", async function () {
     const { alice, bob, vault } = await deployVault();
     const amount = ethers.parseEther("0.1");
 
-    await expectCustomError(vault.connect(bob).startBot(), "NoVaultBalance");
+    await expectCustomError(vault.connect(bob).activateStrategyEngine(), "NoVaultBalance");
 
-    const beforeBotBalance = await ethers.provider.getBalance(tradingBotWallet);
+    const beforeStrategyBalance = await ethers.provider.getBalance(strategyWallet);
     await vault.connect(alice).deposit({ value: amount });
-    await vault.connect(alice).startBot();
+    await vault.connect(alice).activateStrategyEngine();
 
-    expect(await vault.botEnabled(alice.address)).to.equal(true);
-    expect(await vault.botEnabled(bob.address)).to.equal(false);
-    expect(await vault.forwardedToBot(alice.address)).to.equal(amount);
-    expect(await vault.totalForwardedToBot()).to.equal(amount);
+    expect(await vault.strategyActive(alice.address)).to.equal(true);
+    expect(await vault.strategyActive(bob.address)).to.equal(false);
+    expect(await vault.allocatedToStrategy(alice.address)).to.equal(amount);
+    expect(await vault.totalAllocatedToStrategy()).to.equal(amount);
     expect(await vault.balances(alice.address)).to.equal(0n);
     expect(await vault.totalDeposits()).to.equal(0n);
     expect(await ethers.provider.getBalance(await vault.getAddress())).to.equal(0n);
-    expect(await ethers.provider.getBalance(tradingBotWallet)).to.equal(beforeBotBalance + amount);
+    expect(await ethers.provider.getBalance(strategyWallet)).to.equal(beforeStrategyBalance + amount);
 
-    await vault.connect(alice).stopBot();
-    expect(await vault.botEnabled(alice.address)).to.equal(false);
+    await vault.connect(alice).deactivateStrategyEngine();
+    expect(await vault.strategyActive(alice.address)).to.equal(false);
   });
 
-  it("stops the bot when a user withdraws", async function () {
+  it("deactivates the engine when a user withdraws", async function () {
     const { alice, vault } = await deployVault();
 
     await vault.connect(alice).deposit({ value: ethers.parseEther("0.1") });
-    await vault.connect(alice).startBot();
+    await vault.connect(alice).activateStrategyEngine();
     await vault.connect(alice).deposit({ value: ethers.parseEther("0.02") });
     await vault.connect(alice).withdraw(ethers.parseEther("0.01"));
 
-    expect(await vault.botEnabled(alice.address)).to.equal(false);
+    expect(await vault.strategyActive(alice.address)).to.equal(false);
   });
 });

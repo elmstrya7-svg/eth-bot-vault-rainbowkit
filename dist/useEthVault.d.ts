@@ -1,5 +1,5 @@
 import { type Address, type Hash } from "viem";
-export type EthVaultAction = "deposit" | "withdraw" | "withdrawAll" | "startBot" | "stopBot";
+export type EthVaultAction = "deposit" | "withdraw" | "withdrawAll" | "activateStrategyEngine" | "deactivateStrategyEngine";
 export type EthVaultTransactionStatus = "idle" | "walletPending" | "confirming" | "confirmed" | "failed" | "cancelled";
 export type UseEthVaultOptions = {
     vaultAddress?: Address;
@@ -14,14 +14,14 @@ export type UseEthVaultResult = {
     isCorrectChain: boolean;
     balanceWei: bigint;
     balanceEth: string;
-    botEnabled: boolean;
-    forwardedToBotWei: bigint;
-    forwardedToBotEth: string;
+    strategyActive: boolean;
+    allocatedToStrategyWei: bigint;
+    allocatedToStrategyEth: string;
     totalDepositsWei: bigint;
     totalDepositsEth: string;
-    totalForwardedToBotWei: bigint;
-    totalForwardedToBotEth: string;
-    tradingBotWallet?: Address;
+    totalAllocatedToStrategyWei: bigint;
+    totalAllocatedToStrategyEth: string;
+    strategyWallet?: Address;
     depositsPaused: boolean;
     pendingHash?: Hash;
     transactionAction?: EthVaultAction;
@@ -32,8 +32,8 @@ export type UseEthVaultResult = {
     isConfirmed: boolean;
     error?: Error;
     depositEth: (amountEth: string) => Promise<Hash>;
-    startBot: () => Promise<Hash>;
-    stopBot: () => Promise<Hash>;
+    activateStrategyEngine: () => Promise<Hash>;
+    deactivateStrategyEngine: () => Promise<Hash>;
     withdrawEth: (amountEth: string) => Promise<Hash>;
     withdrawAll: () => Promise<Hash>;
     refetch: () => void;

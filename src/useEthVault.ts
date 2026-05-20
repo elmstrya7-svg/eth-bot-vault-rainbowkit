@@ -11,7 +11,12 @@ import {
 import { mainnet } from "wagmi/chains";
 import { ETH_BOT_VAULT_ABI } from "./abi.js";
 
-export type EthVaultAction = "deposit" | "withdraw" | "withdrawAll" | "startBot" | "stopBot";
+export type EthVaultAction =
+  | "deposit"
+  | "withdraw"
+  | "withdrawAll"
+  | "activateStrategyEngine"
+  | "deactivateStrategyEngine";
 export type EthVaultTransactionStatus = "idle" | "walletPending" | "confirming" | "confirmed" | "failed" | "cancelled";
 
 export type UseEthVaultOptions = {
@@ -28,14 +33,14 @@ export type UseEthVaultResult = {
   isCorrectChain: boolean;
   balanceWei: bigint;
   balanceEth: string;
-  botEnabled: boolean;
-  forwardedToBotWei: bigint;
-  forwardedToBotEth: string;
+  strategyActive: boolean;
+  allocatedToStrategyWei: bigint;
+  allocatedToStrategyEth: string;
   totalDepositsWei: bigint;
   totalDepositsEth: string;
-  totalForwardedToBotWei: bigint;
-  totalForwardedToBotEth: string;
-  tradingBotWallet?: Address;
+  totalAllocatedToStrategyWei: bigint;
+  totalAllocatedToStrategyEth: string;
+  strategyWallet?: Address;
   depositsPaused: boolean;
   pendingHash?: Hash;
   transactionAction?: EthVaultAction;
@@ -46,8 +51,8 @@ export type UseEthVaultResult = {
   isConfirmed: boolean;
   error?: Error;
   depositEth: (amountEth: string) => Promise<Hash>;
-  startBot: () => Promise<Hash>;
-  stopBot: () => Promise<Hash>;
+  activateStrategyEngine: () => Promise<Hash>;
+  deactivateStrategyEngine: () => Promise<Hash>;
   withdrawEth: (amountEth: string) => Promise<Hash>;
   withdrawAll: () => Promise<Hash>;
   refetch: () => void;
@@ -118,35 +123,35 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     }
   });
 
-  const botEnabledRead = useReadContract({
+  const strategyActiveRead = useReadContract({
     ...contractConfig,
-    functionName: "botEnabled",
+    functionName: "strategyActive",
     args: address ? [address] : undefined,
     query: {
       enabled: Boolean(options.vaultAddress && address)
     }
   });
 
-  const forwardedToBotRead = useReadContract({
+  const allocatedToStrategyRead = useReadContract({
     ...contractConfig,
-    functionName: "forwardedToBot",
+    functionName: "allocatedToStrategy",
     args: address ? [address] : undefined,
     query: {
       enabled: Boolean(options.vaultAddress && address)
     }
   });
 
-  const totalForwardedToBotRead = useReadContract({
+  const totalAllocatedToStrategyRead = useReadContract({
     ...contractConfig,
-    functionName: "totalForwardedToBot",
+    functionName: "totalAllocatedToStrategy",
     query: {
       enabled: Boolean(options.vaultAddress)
     }
   });
 
-  const tradingBotWalletRead = useReadContract({
+  const strategyWalletRead = useReadContract({
     ...contractConfig,
-    functionName: "tradingBotWallet",
+    functionName: "strategyWallet",
     query: {
       enabled: Boolean(options.vaultAddress)
     }
@@ -171,13 +176,13 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
 
   const refetch = useCallback(() => {
     void balanceRead.refetch();
-    void botEnabledRead.refetch();
-    void forwardedToBotRead.refetch();
+    void strategyActiveRead.refetch();
+    void allocatedToStrategyRead.refetch();
     void totalDepositsRead.refetch();
-    void totalForwardedToBotRead.refetch();
-    void tradingBotWalletRead.refetch();
+    void totalAllocatedToStrategyRead.refetch();
+    void strategyWalletRead.refetch();
     void pausedRead.refetch();
-  }, [balanceRead, botEnabledRead, forwardedToBotRead, pausedRead, totalDepositsRead, totalForwardedToBotRead, tradingBotWalletRead]);
+  }, [allocatedToStrategyRead, balanceRead, pausedRead, strategyActiveRead, strategyWalletRead, totalAllocatedToStrategyRead, totalDepositsRead]);
 
   useEffect(() => {
     if (!submittedHash) return;
@@ -257,27 +262,27 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync, writeVaultTransaction]
   );
 
-  const startBot = useCallback(async () => {
+  const activateStrategyEngine = useCallback(async () => {
     await ensureReady();
 
-    return writeVaultTransaction("startBot", () =>
+    return writeVaultTransaction("activateStrategyEngine", () =>
       writeContractAsync({
         address: options.vaultAddress!,
         abi: ETH_BOT_VAULT_ABI,
-        functionName: "startBot",
+        functionName: "activateStrategyEngine",
         chainId: requiredChainId
       })
     );
   }, [ensureReady, options.vaultAddress, requiredChainId, writeContractAsync, writeVaultTransaction]);
 
-  const stopBot = useCallback(async () => {
+  const deactivateStrategyEngine = useCallback(async () => {
     await ensureReady();
 
-    return writeVaultTransaction("stopBot", () =>
+    return writeVaultTransaction("deactivateStrategyEngine", () =>
       writeContractAsync({
         address: options.vaultAddress!,
         abi: ETH_BOT_VAULT_ABI,
-        functionName: "stopBot",
+        functionName: "deactivateStrategyEngine",
         chainId: requiredChainId
       })
     );
@@ -303,14 +308,14 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     toError(writeError) ??
     toError(wait.error) ??
     toError(balanceRead.error) ??
-    toError(botEnabledRead.error) ??
-    toError(forwardedToBotRead.error) ??
+    toError(strategyActiveRead.error) ??
+    toError(allocatedToStrategyRead.error) ??
     toError(totalDepositsRead.error) ??
-    toError(totalForwardedToBotRead.error) ??
+    toError(totalAllocatedToStrategyRead.error) ??
     toError(pausedRead.error);
 
-  const forwardedToBotWei = forwardedToBotRead.data ?? 0n;
-  const totalForwardedToBotWei = totalForwardedToBotRead.data ?? 0n;
+  const allocatedToStrategyWei = allocatedToStrategyRead.data ?? 0n;
+  const totalAllocatedToStrategyWei = totalAllocatedToStrategyRead.data ?? 0n;
   const transactionStatusText = useMemo(() => {
     if (transactionStatus === "walletPending" || isWritePending) return "Confirm in wallet";
     if (transactionStatus === "confirming") return "Waiting for confirmation";
@@ -328,14 +333,14 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     isCorrectChain: chainId === requiredChainId,
     balanceWei,
     balanceEth: formatEther(balanceWei),
-    botEnabled: botEnabledRead.data ?? false,
-    forwardedToBotWei,
-    forwardedToBotEth: formatEther(forwardedToBotWei),
+    strategyActive: strategyActiveRead.data ?? false,
+    allocatedToStrategyWei,
+    allocatedToStrategyEth: formatEther(allocatedToStrategyWei),
     totalDepositsWei,
     totalDepositsEth: formatEther(totalDepositsWei),
-    totalForwardedToBotWei,
-    totalForwardedToBotEth: formatEther(totalForwardedToBotWei),
-    tradingBotWallet: tradingBotWalletRead.data,
+    totalAllocatedToStrategyWei,
+    totalAllocatedToStrategyEth: formatEther(totalAllocatedToStrategyWei),
+    strategyWallet: strategyWalletRead.data,
     depositsPaused: pausedRead.data ?? false,
     pendingHash: submittedHash,
     transactionAction,
@@ -346,8 +351,8 @@ export function useEthVault(options: UseEthVaultOptions): UseEthVaultResult {
     isConfirmed: transactionStatus === "confirmed",
     error,
     depositEth,
-    startBot,
-    stopBot,
+    activateStrategyEngine,
+    deactivateStrategyEngine,
     withdrawEth,
     withdrawAll,
     refetch
