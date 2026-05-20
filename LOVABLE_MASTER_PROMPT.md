@@ -301,3 +301,143 @@ Final deliverable:
 ```text
 Remove all remaining demo ETH price, demo source labels, provider labels, and fake wallet balances. Use only useEthBotDashboard from eth-bot-vault-rainbowkit. Map deployment.deployVault, deployment.vaultAddress, price.priceText, price.changePercent24hText, wallet.formatted, engine.strategyWallet, engine.availableEth, engine.allocatedEth, vault.depositEth, vault.activateStrategyEngine, vault.deactivateStrategyEngine, and vault.withdrawAll into the existing UI. Do not display price.source or any market data provider name. Keep Fund Contract separate from Strategy Engine controls. Do not add destination or routing inputs. Show engine.strategyWallet with an Etherscan link before users confirm activation. Keep RainbowKit wallet confirmation for every transaction.
 ```
+
+## Version 2: Swing Strategy + Executor Prompt
+
+Use this prompt when the Lovable app should include a real Ethereum swing-trade strategy control layer around the existing vault, executor, and bot wallet flow.
+
+```text
+Upgrade the existing React + TypeScript EtherTrade Engine dashboard into an Ethereum swing-trade strategy dashboard that connects the UI to the package's existing vault state, BotTradeExecutor address, bot wallet address, and Uniswap V2 round-trip preview/execution helpers.
+
+Use this GitHub package:
+
+npm install github:elmstrya7-svg/eth-bot-vault-rainbowkit
+
+Install wallet dependencies if missing:
+
+npm install wagmi viem @rainbow-me/rainbowkit @tanstack/react-query
+
+Do not implement custom smart-contract ABI calls, bytecode, wallet-balance reads, vault deployment internals, or executor internals outside the package exports. Use the package exports and browser wallet provider.
+
+Required imports:
+
+import {
+  approveUniswapV2RoundTripToken,
+  createEthBotRainbowKitConfig,
+  EthBotPanel,
+  previewUniswapV2RoundTrip,
+  useEthBotDashboard,
+  type UniswapV2RoundTripPreview
+} from "eth-bot-vault-rainbowkit";
+
+Preserve the existing contract funding and activation call sites exactly:
+
+- deployment.deployVault()
+- vault.depositEth(amountEth)
+- vault.activateStrategyEngine()
+- vault.deactivateStrategyEngine()
+- vault.withdrawAll()
+- vault.refetch()
+
+Do not rename these actions, wrap them in alternative contract calls, replace them with custom wagmi writes, change their arguments, or add direct ETH transfer code. Do not modify package source code from the Lovable app.
+
+The strategy layer must build around these existing actions:
+
+1. The vault workflow remains:
+   - Deploy Vault Contract calls deployment.deployVault().
+   - Fund Contract calls vault.depositEth(amountEth).
+   - Activate Engine calls vault.activateStrategyEngine().
+   - Pause Engine calls vault.deactivateStrategyEngine().
+   - Withdraw Available ETH calls vault.withdrawAll().
+
+2. The strategy workflow is separate:
+   - Read live ETH price, wallet balance, vault balance, allocated balance, engine state, and strategy destination from useEthBotDashboard({}).
+   - Add app-level fields for executor address and bot wallet/operator address.
+   - If an executor address is known before deployment, pass it through the dashboard deployment options as deployment.strategyWalletAddress.
+   - Treat engine.strategyWallet as the strategy destination shown to the user.
+   - Do not add UI controls that let the user override the destination after the vault is deployed.
+
+3. Swing strategy preview:
+   - Build a "Swing Strategy" panel using React state for:
+     - executorAddress
+     - botWalletAddress
+     - tradeTokenAddress
+     - tradeValueEth
+     - minProfitEth
+     - slippageBps
+     - executeEnabled toggle
+   - Default tradeValueEth to 0.001.
+   - Default minProfitEth to 0.
+   - Default slippageBps to 50.
+   - Validate every address with viem isAddress before allowing preview or approval.
+   - Validate tradeValueEth and minProfitEth with parseEther.
+   - Use previewUniswapV2RoundTrip for quote/simulation preview.
+   - Store the returned UniswapV2RoundTripPreview in state.
+   - Render expectedEthOut, expectedProfitEth, minBalanceAfterEth if present on the preview object.
+   - Label this as a live strategy preview, not a guaranteed-profit result.
+
+4. Token approval:
+   - Add a button "Approve Strategy Token" that calls approveUniswapV2RoundTripToken only when executorAddress, tradeTokenAddress, and wallet connection are valid.
+   - Disable the button while a transaction is pending.
+   - Show the approval transaction hash with an Etherscan link if returned.
+
+5. Bot execution instructions:
+   - Add a compact "Bot Runner" diagnostics section that generates environment variables for the off-chain bot:
+     EXECUTOR_ADDRESS=<executorAddress>
+     TRADE_TOKEN=<tradeTokenAddress>
+     TRADE_VALUE_ETH=<tradeValueEth>
+     MIN_PROFIT_ETH=<minProfitEth>
+     BOT_ACCOUNT_ADDRESS=<botWalletAddress>
+     BOT_EXECUTE=false
+     npm run bot:uniswap-v2
+   - Also show the live execution form with BOT_EXECUTE=true only behind a disabled-by-default execute toggle.
+   - Do not ask for BOT_PRIVATE_KEY in the browser UI.
+   - Do not collect private keys, seed phrases, exchange credentials, or custody secrets.
+   - The browser UI may generate commands and preview simulations; signing/broadcasting privileged bot execution must remain outside the browser unless the package explicitly exposes a safe wallet-confirmed function.
+
+6. Dashboard wording:
+   - The UI may state: "Connected to live ETH market data, wallet state, a deployed vault, and a restricted on-chain executor."
+   - The UI may state: "Swing strategy preview uses live on-chain route reads and executor simulation where configured."
+   - The UI may state: "Execution requires approved targets/selectors and a bot operator wallet."
+   - Do not claim guaranteed profit, guaranteed arbitrage, risk-free automation, audited contracts, official endorsement, or guaranteed recovery of all ETH.
+   - Do not invent completed trades. Only display trade execution status from real returned hashes, previews, or user-provided bot runner output.
+
+7. Security hardening:
+   - Never use dangerouslySetInnerHTML.
+   - Never eval user input.
+   - Never store private keys or secrets in localStorage, sessionStorage, React state, URL params, or logs.
+   - Never ask the user for a seed phrase or private key.
+   - Validate all user-supplied addresses with isAddress.
+   - Validate all ETH amounts with parseEther inside try/catch.
+   - Disable all transaction buttons while vault.isWritePending, vault.isConfirming, deployment.isDeployPending, or deployment.isDeploying.
+   - Show the shortened executorAddress, botWalletAddress, deployment.vaultAddress, engine.strategyWallet, and vault.pendingHash with Etherscan links.
+   - Keep errors readable and do not expose stack traces in the UI.
+   - Do not create hidden iframes, hidden forms, auto-clicks, auto-signing behavior, clipboard key capture, or background wallet requests.
+   - Every wallet write must be triggered by a visible user click and wallet confirmation.
+
+8. BotTradeExecutor-specific constraints:
+   - Do not bypass BotTradeExecutor.
+   - Do not create a generic arbitrary calldata sender in the UI.
+   - Do not expose executeTrade or executeBatch as raw free-form calldata controls.
+   - Keep execution scoped to package-provided helpers such as previewUniswapV2RoundTrip and approveUniswapV2RoundTripToken.
+   - The executor must be treated as restricted: target approval, selector approval, token approval, code-hash pinning, minBalanceAfter, and paused state are required safety assumptions.
+
+9. Layout:
+   - Keep the app as a dense operational dashboard, not a landing page.
+   - First viewport must show ConnectButton, ETH / USDT live price, wallet ETH, vault status, strategy destination, funding controls, engine controls, and swing strategy preview.
+   - Use compact dark-mode cards with 8px or smaller border radius.
+   - Keep "Fund Contract" and "Strategy Engine" controls visually separate from "Swing Strategy".
+   - Do not add large hero sections, fake charts, fake PnL, fake balances, or decorative marketing copy.
+
+10. Final deliverable:
+   - A working React + TypeScript dashboard.
+   - RainbowKit wallet connection.
+   - useEthBotDashboard wired to live package state.
+   - Existing vault actions preserved exactly.
+   - Strategy destination displayed and linked.
+   - Swing Strategy panel with validated executor/bot/token inputs.
+   - Live Uniswap V2 round-trip preview via package helper.
+   - Token approval action via package helper.
+   - Bot runner command generator for npm run bot:uniswap-v2.
+   - Clear transaction status, Etherscan links, and readable errors.
+```
