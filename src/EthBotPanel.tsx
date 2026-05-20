@@ -153,6 +153,7 @@ export function EthBotPanel({
 
       <div style={{ display: "grid", gap: 8 }}>
         <Row label="Vault contract" value={effectiveVaultAddress ? `${effectiveVaultAddress.slice(0, 6)}...${effectiveVaultAddress.slice(-4)}` : "Not deployed"} />
+        <Row label="Bot wallet" value={vault.tradingBotWallet ? `${vault.tradingBotWallet.slice(0, 6)}...${vault.tradingBotWallet.slice(-4)}` : "Not loaded"} />
         <Row label="ETH / USDT" value={price.priceText} />
         <Row label="24h change" value={price.changePercent24hText} />
         <Row label="Market status" value={price.status} />

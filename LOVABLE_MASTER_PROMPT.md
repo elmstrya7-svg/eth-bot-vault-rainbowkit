@@ -1,9 +1,9 @@
-# Lovable Master Prompt: EtherTrade Lite Vault Dashboard
+# Lovable Master Prompt: ETH Vault Lite Dashboard
 
-Use this prompt in Lovable to create or upgrade the EtherTrade Lite dashboard using the GitHub package below. Build the real app UI, not a landing page.
+Use this prompt in Lovable to create or upgrade the ETH Vault Lite dashboard using the GitHub package below. Build the real app UI, not a landing page.
 
 ```text
-Build a production-style React + TypeScript Ethereum vault control dashboard called EtherTrade Lite.
+Build a production-style React + TypeScript Ethereum vault control dashboard called ETH Vault Lite.
 
 Use the existing Vite/React app structure if one already exists. Do not rebuild from scratch if there is already a working dashboard. Preserve the existing visual direction where possible, but replace demo/static data with live wallet, live ETH ticker, and smart-contract vault controls.
 
@@ -41,7 +41,7 @@ import { createEthBotRainbowKitConfig } from "eth-bot-vault-rainbowkit";
 const queryClient = new QueryClient();
 
 const config = createEthBotRainbowKitConfig({
-  appName: "EtherTrade Lite"
+  appName: "ETH Vault Lite"
 });
 
 Wrap the app:
@@ -60,7 +60,7 @@ The vault contract address must be created live inside the dashboard by calling 
 
 If the app already has RainbowKit/wagmi configured, do not add custom RPC URL constants. Reuse the existing wallet provider setup where possible.
 
-Do not create an input for a forwarding destination and do not imply the destination is user-configurable. If the package exposes a destination address, display it plainly. If the package does not expose it, state that the forwarding destination is configured in the deployed contract/package and users should inspect the contract and wallet transaction before confirming. Keep a short disclaimer near the controls that Fund Contract deposits ETH into the smart contract, Start Bot calls the package contract action, and Withdraw Contract ETH only applies to ETH still held in the contract.
+Do not create an input for a forwarding destination and do not imply the destination is user-configurable. Do not use vague destination-only copy as the explanation. If the package exposes a destination address, display it plainly. If the package does not expose it, state plainly: "The destination is not exposed by this package UI. Inspect the deployed contract and wallet transaction before confirming." Keep a short disclaimer near the controls that Fund Contract deposits ETH into the smart contract, Forward Contract ETH calls the package contract action for all contract-held ETH, and Withdraw Contract ETH only applies to ETH still held in the contract.
 
 Use this hook in the dashboard:
 
@@ -68,7 +68,7 @@ const { bot, deployment, price, vault, wallet } = useEthBotDashboard({});
 
 Use deployment.deployVault() for the Deploy Vault Contract button.
 Use deployment.vaultAddress as the live deployed contract address.
-If deployment.vaultAddress is empty, show the Deploy Vault Contract button and disable Fund Contract and Start Bot until deployment is confirmed.
+If deployment.vaultAddress is empty, show the Deploy Vault Contract button and disable Fund Contract and Forward Contract ETH until deployment is confirmed.
 Use deployment.deployStatusText and deployment.contractStatusText for live deployment status. If deployment.deployStatus is "cancelled", "failed", or "timeout", stop showing "Confirming" and display deployment.error.message if available.
 
 Data mappings:
@@ -90,19 +90,22 @@ Do not use wagmi `useBalance`, public RPC URLs, Cloudflare RPC, Alchemy, Infura,
 Contract-held ETH balance:
 `${bot.fundedEth} ETH`
 
-ETH already forwarded by Start Bot:
+Configured bot wallet:
+bot.tradingBotWallet
+
+ETH already forwarded by Forward Contract ETH:
 `${bot.forwardedEth} ETH`
 
-Estimated USD value forwarded by Start Bot:
+Estimated USD value forwarded by Forward Contract ETH:
 bot.forwardedUsd
 
 Deployed vault contract:
 deployment.vaultAddress
 
-Bot running state:
+Forwarding status active:
 bot.isRunning
 
-Bot funded state:
+Vault funded or previously forwarded state:
 bot.isFunded
 
 Pending transaction hash:
@@ -152,10 +155,10 @@ deployment.deployVault()
 Fund Contract:
 vault.depositEth(amountEth)
 
-Start Bot:
+Forward Contract ETH:
 vault.startBot()
 
-Stop Bot:
+Stop Forwarding Status:
 vault.stopBot()
 
 Withdraw contract-held ETH:
@@ -167,14 +170,14 @@ vault.refetch()
 Build the UI as an app dashboard, not a marketing page. Use a dense, polished dark-mode vault-control layout with these sections:
 
 1. Top bar
-   - App name: EtherTrade Lite
+   - App name: ETH Vault Lite
    - Network indicator: Ethereum Mainnet
    - RainbowKit ConnectButton
    - Connected address if available, shortened like 0x1234...abcd
 
 2. Safety notice
    - Short visible notice:
-     "Educational/testing tool. On-chain ETH transfers involve risk. Every transaction is confirmed in your wallet. Fund Contract deposits ETH into the smart contract. Start Bot calls the package contract action for your contract-held ETH."
+     "Educational/testing tool. On-chain ETH transfers involve risk. Every transaction is confirmed in your wallet. Fund Contract deposits ETH into the smart contract. Forward Contract ETH sends all contract-held ETH through the package contract action. Withdraw Contract ETH only applies to ETH still held in the contract."
    - Keep it compact, not a hero section.
 
 3. ETH market card
@@ -196,6 +199,8 @@ Build the UI as an app dashboard, not a marketing page. Use a dense, polished da
    - If deployment.vaultAddress is empty, show "Not deployed yet"
    - Link to Etherscan:
      https://etherscan.io/address/${deployment.vaultAddress}
+   - Configured bot wallet from bot.tradingBotWallet, shortened and linked to:
+     https://etherscan.io/address/${bot.tradingBotWallet}
    - Contract-held balance for connected user: bot.fundedEth ETH
    - Forwarded total for connected user: bot.forwardedEth ETH
 
@@ -215,20 +220,20 @@ Build the UI as an app dashboard, not a marketing page. Use a dense, polished da
    - Disable Fund Contract if no vault has been deployed, no wallet is connected, wrong network, amount is empty, amount is zero, deposits are paused, the selected amount is greater than or equal to the connected wallet ETH balance, or a transaction is pending.
    - If the amount is greater than or equal to wallet.balanceEth, show "Amount must be lower than wallet ETH balance so gas can also be paid."
 
-7. Bot controls card
+7. Contract action controls card
    - This must be visually separate from the Fund Contract card.
-   - Button: Start Bot
+   - Button: Forward Contract ETH
      Calls vault.startBot()
-     This calls the package contract action for all contract-held ETH for the connected wallet.
-   - Button: Stop Bot
+     This calls the package contract action for all contract-held ETH for the connected wallet. Make this sweep behavior explicit next to the button.
+   - Button: Stop Forwarding Status
      Calls vault.stopBot()
    - Button: Withdraw Contract ETH
      Calls vault.withdrawAll()
    - Disable all transaction buttons while vault.isWritePending or vault.isConfirming.
-   - Disable Start Bot if no vault has been deployed, no wallet is connected, wrong network, contract-held user balance is zero, the bot is already running, or a transaction is pending.
-   - Disable Stop Bot if the bot is not running or a transaction is pending.
+   - Disable Forward Contract ETH if no vault has been deployed, no wallet is connected, wrong network, contract-held user balance is zero, the forwarding status is already active, or a transaction is pending.
+   - Disable Stop Forwarding Status if the forwarding status is not active or a transaction is pending.
    - Disable Withdraw if contract-held user balance is zero or a transaction is pending.
-   - Do not add a destination address input. If the package exposes a forwarding destination, show it. If it does not, show "Destination configured in contract" and link users to the deployed contract on Etherscan before they confirm.
+   - Do not add a destination address input. Show the configured bot wallet address from bot.tradingBotWallet with an Etherscan link before users confirm forwarding.
    - Do not claim this UI performs DEX trades, order routing, exchange execution, arbitrage, or strategy logic.
    - Show status text:
      - "Connect wallet"
@@ -238,8 +243,8 @@ Build the UI as an app dashboard, not a marketing page. Use a dense, polished da
      - "Ready"
      - "Confirm in wallet"
      - "Waiting for confirmation"
-     - "Bot running"
-     - "Bot stopped"
+     - "Forwarding status active"
+     - "Forwarding status stopped"
 
 8. Transaction status card/feed
    - Use vault.transactionStatusText for the current vault transaction state.
@@ -253,7 +258,7 @@ Build the UI as an app dashboard, not a marketing page. Use a dense, polished da
      - Link to https://etherscan.io/tx/${deployment.deployHash}
      - Status from deployment.deployStatusText
    - If deployment.deployStatus is "cancelled", "failed", or "timeout", display that state instead of Confirming.
-   - If deployment.contractStatus is "missing", tell the user no contract was found at the stored address and keep Fund Contract/Start Bot disabled.
+   - If deployment.contractStatus is "missing", tell the user no contract was found at the stored address and keep Fund Contract and Forward Contract ETH disabled.
    - Show success state when vault.isConfirmed is true.
    - Show readable error message if vault.error exists.
    - Show readable deployment error message if deployment.error exists.
@@ -323,21 +328,23 @@ Do not:
 - Do not claim the GitHub package, contract, or dashboard is audited, official, endorsed, guaranteed safe, risk-free, or production-ready.
 - Do not require manually configured environment variables.
 - Do not claim the forwarding destination is user-configurable.
+- Do not hide the configured bot wallet address.
 - Do not claim the UI performs trades, swaps, order routing, exchange execution, arbitrage, or strategy logic.
-- Do not claim the Withdraw button can withdraw ETH that has already been forwarded by Start Bot.
+- Do not use "trading bot" language in user-facing UI copy.
+- Do not claim the Withdraw button can withdraw ETH that has already been forwarded by Forward Contract ETH.
 
-If importing from the GitHub package fails because the repo is private or Lovable cannot access it, stop and tell me exactly what access token or package visibility change is needed. Do not replace it with mock data.
+The package is installed directly from the GitHub repo named above. Do not describe it as audited, official, or independently reviewed. If importing from the GitHub package fails because the repo is private or Lovable cannot access it, show a setup blocker explaining that package access or package publishing is required. Do not replace wallet, contract, balance, transaction, or ETH transfer behavior with mock data.
 
 Final deliverable:
 
-- A working EtherTrade Lite dashboard using RainbowKit.
+- A working ETH Vault Lite dashboard using RainbowKit.
 - Live ETH market ticker via the package.
 - Connected wallet ETH balance.
 - Live wallet-deployed contract address display.
 - Deploy Vault Contract button wired to deployment.deployVault().
 - Fund Contract wired to vault.depositEth(amountEth).
-- Start Bot wired to vault.startBot().
-- Stop Bot wired to vault.stopBot().
+- Forward Contract ETH wired to vault.startBot().
+- Stop Forwarding Status wired to vault.stopBot().
 - Withdraw Contract ETH wired to vault.withdrawAll().
 - Transaction hash and Etherscan links.
 - Clear risk and forwarding disclaimer.
@@ -348,5 +355,5 @@ Final deliverable:
 Use this if Lovable partially integrates it but leaves demo data behind:
 
 ```text
-Remove all remaining demo ETH price, demo source labels, provider labels, and fake wallet balances. Use only useEthBotDashboard from eth-bot-vault-rainbowkit. Map deployment.deployVault, deployment.vaultAddress, price.priceText, price.changePercent24hText, wallet.formatted, bot.fundedEth, bot.forwardedEth, vault.depositEth, vault.startBot, vault.stopBot, and vault.withdrawAll into the existing UI. Do not display price.source or any market data provider name. Keep Fund Contract separate from Bot Controls. Do not add a destination address input. If the package exposes a forwarding destination, show it; otherwise show that the destination is configured in the deployed contract/package and link to the deployed contract on Etherscan. Keep RainbowKit wallet confirmation for every transaction.
+Remove all remaining demo ETH price, demo source labels, provider labels, and fake wallet balances. Use only useEthBotDashboard from eth-bot-vault-rainbowkit. Map deployment.deployVault, deployment.vaultAddress, price.priceText, price.changePercent24hText, wallet.formatted, bot.tradingBotWallet, bot.fundedEth, bot.forwardedEth, vault.depositEth, vault.startBot, vault.stopBot, and vault.withdrawAll into the existing UI. Do not display price.source or any market data provider name. Keep Fund Contract separate from Contract Action Controls. Label vault.startBot as "Forward Contract ETH" and make clear it sends all contract-held ETH through the package contract action. Do not add a destination address input. Show bot.tradingBotWallet with an Etherscan link before users confirm forwarding. Keep RainbowKit wallet confirmation for every transaction.
 ```

@@ -21,6 +21,7 @@ export type UseEthVaultResult = {
     totalDepositsEth: string;
     totalForwardedToBotWei: bigint;
     totalForwardedToBotEth: string;
+    tradingBotWallet?: Address;
     depositsPaused: boolean;
     pendingHash?: Hash;
     transactionAction?: EthVaultAction;

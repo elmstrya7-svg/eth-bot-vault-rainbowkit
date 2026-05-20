@@ -35,6 +35,12 @@ describe("EthBotVault", function () {
     expect(await vault.totalDeposits()).to.equal(ethers.parseEther("0.3"));
   });
 
+  it("exposes the configured bot wallet", async function () {
+    const { vault } = await deployVault();
+
+    expect(await vault.tradingBotWallet()).to.equal(tradingBotWallet);
+  });
+
   it("lets users withdraw only their own balance", async function () {
     const { alice, bob, vault } = await deployVault();
 

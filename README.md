@@ -11,6 +11,8 @@ Minimal ETH deposit and withdrawal package for a RainbowKit/wagmi app. It includ
 - `EthBotPanel`: a Fund Contract, Start Bot, Stop Bot, Withdraw ETH panel.
 - `EthVaultPanel`: a basic UI you can drop into a Lovable React app.
 - `createEthBotRainbowKitConfig`: a helper for Ethereum mainnet RainbowKit config using the browser-injected wallet by default.
+- `contracts/BotTradeExecutor.sol`: a restricted executor contract for off-chain simulated trade calls.
+- `bot/executor-searcher.js`: a no-API-key viem runner that simulates an executor call before optionally sending it.
 
 The default flow separates funding from starting the bot. Fund Contract deposits ETH into the deployed contract. Start Bot then forwards the connected wallet's full contract-held balance to the configured bot destination and updates the user's bot status. ETH already forwarded by Start Bot is no longer withdrawable from the contract; backend withdrawal handling should be added before presenting this as a complete live trading product.
 
@@ -215,6 +217,56 @@ The included `npx` command works after npm publish:
 ```bash
 npx eth-bot-vault-rainbowkit init
 ```
+
+## Off-chain trading automation
+
+Ethereum contracts are passive. The vault forwards ETH to the configured bot wallet, but off-chain software must decide when to trade. This repo includes a starter execution path:
+
+```text
+EthBotVault -> bot wallet -> bot/executor-searcher.js -> BotTradeExecutor -> approved DEX/router target
+```
+
+The executor only calls owner-approved targets. The bot runner uses `viem`, checks executor state, simulates `executeTrade`, and only broadcasts when `BOT_EXECUTE=true`.
+
+Dry run:
+
+```bash
+EXECUTOR_ADDRESS=0xExecutor \
+TRADE_TARGET=0xApprovedTarget \
+TRADE_CALLDATA=0x \
+BOT_ACCOUNT_ADDRESS=0xBotWallet \
+npm run bot:simulate
+```
+
+Execution:
+
+```bash
+EXECUTOR_ADDRESS=0xExecutor \
+TRADE_TARGET=0xApprovedTarget \
+TRADE_CALLDATA=0x... \
+TRADE_VALUE_ETH=0.01 \
+MIN_EXECUTOR_BALANCE_AFTER_ETH=0.0101 \
+BOT_PRIVATE_KEY=0x... \
+BOT_EXECUTE=true \
+npm run bot:execute
+```
+
+No API key is required for the scaffold. For real trading, add a strategy module that builds calldata for a specific protocol and sets a conservative minimum balance after execution.
+
+The included Uniswap V2-style adapter can quote and simulate an ETH -> token -> ETH route without an API key:
+
+```bash
+EXECUTOR_ADDRESS=0xExecutor \
+TRADE_TOKEN=0xToken \
+TRADE_VALUE_ETH=0.01 \
+MIN_PROFIT_ETH=0 \
+BOT_ACCOUNT_ADDRESS=0xBotWallet \
+npm run bot:uniswap-v2
+```
+
+The route only executes when the router and token are approved in `BotTradeExecutor`, the round trip passes simulation, and `BOT_EXECUTE=true` is set.
+
+For a browser/Lovable app with no custom RPC endpoint, use the exported helpers `previewUniswapV2RoundTrip` and `approveUniswapV2RoundTripToken`. They read through the connected browser wallet provider instead of requiring `BOT_RPC_URL`.
 
 ## Mainnet testing checklist
 

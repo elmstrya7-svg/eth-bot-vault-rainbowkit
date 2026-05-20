@@ -206,6 +206,16 @@ export declare const ETH_BOT_VAULT_ABI: readonly [{
     readonly stateMutability: "view";
     readonly type: "function";
 }, {
+    readonly inputs: readonly [];
+    readonly name: "tradingBotWallet";
+    readonly outputs: readonly [{
+        readonly internalType: "address payable";
+        readonly name: "";
+        readonly type: "address";
+    }];
+    readonly stateMutability: "view";
+    readonly type: "function";
+}, {
     readonly inputs: readonly [{
         readonly internalType: "uint256";
         readonly name: "amount";

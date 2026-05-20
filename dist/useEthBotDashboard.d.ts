@@ -19,6 +19,7 @@ export declare function useEthBotDashboard(options: UseEthBotDashboardOptions): 
         fundedUsd: number | null;
         forwardedEth: string;
         forwardedUsd: number | null;
+        tradingBotWallet: `0x${string}` | undefined;
         walletEth: string;
         walletUsd: number | null;
     };

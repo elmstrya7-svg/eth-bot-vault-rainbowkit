@@ -12,6 +12,7 @@
   },
   "files": [
     "bin",
+    "bot",
     "contracts",
     "dist",
     "scripts",
@@ -28,11 +29,14 @@
     }
   },
   "scripts": {
+    "bot:execute": "node bot/executor-searcher.js",
+    "bot:simulate": "node bot/executor-searcher.js",
+    "bot:uniswap-v2": "node bot/uniswap-v2-roundtrip.js",
     "build": "tsc -p tsconfig.build.json",
     "clean": "rimraf dist artifacts cache typechain-types",
     "compile:contracts": "hardhat compile",
     "deploy:mainnet": "hardhat run scripts/deploy.ts --network mainnet",
-    "test": "hardhat test test/EthBotVault.cjs",
+    "test": "hardhat test",
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {

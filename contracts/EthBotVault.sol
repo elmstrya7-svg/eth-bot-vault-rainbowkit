@@ -2,10 +2,10 @@
 pragma solidity ^0.8.24;
 
 /// @title EthBotVault
-/// @notice Minimal ETH vault for a trading-bot UI. Users can only withdraw their own deposits.
+/// @notice Minimal ETH vault. Users can deposit, withdraw unsent funds, or forward funds to the configured bot wallet.
 contract EthBotVault {
     address public immutable owner;
-    address payable private immutable tradingBotWallet;
+    address payable public immutable tradingBotWallet;
     bool public depositsPaused;
     uint256 public totalDeposits;
     uint256 public totalForwardedToBot;

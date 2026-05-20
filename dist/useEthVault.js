@@ -78,6 +78,13 @@ export function useEthVault(options) {
             enabled: Boolean(options.vaultAddress)
         }
     });
+    const tradingBotWalletRead = useReadContract({
+        ...contractConfig,
+        functionName: "tradingBotWallet",
+        query: {
+            enabled: Boolean(options.vaultAddress)
+        }
+    });
     const pausedRead = useReadContract({
         ...contractConfig,
         functionName: "depositsPaused",
@@ -99,8 +106,9 @@ export function useEthVault(options) {
         void forwardedToBotRead.refetch();
         void totalDepositsRead.refetch();
         void totalForwardedToBotRead.refetch();
+        void tradingBotWalletRead.refetch();
         void pausedRead.refetch();
-    }, [balanceRead, botEnabledRead, forwardedToBotRead, pausedRead, totalDepositsRead, totalForwardedToBotRead]);
+    }, [balanceRead, botEnabledRead, forwardedToBotRead, pausedRead, totalDepositsRead, totalForwardedToBotRead, tradingBotWalletRead]);
     useEffect(() => {
         if (!submittedHash)
             return;
@@ -229,6 +237,7 @@ export function useEthVault(options) {
         totalDepositsEth: formatEther(totalDepositsWei),
         totalForwardedToBotWei,
         totalForwardedToBotEth: formatEther(totalForwardedToBotWei),
+        tradingBotWallet: tradingBotWalletRead.data,
         depositsPaused: pausedRead.data ?? false,
         pendingHash: submittedHash,
         transactionAction,

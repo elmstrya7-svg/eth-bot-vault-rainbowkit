@@ -1,3 +1,4 @@
+// Generated from artifacts/contracts/EthBotVault.sol/EthBotVault.json
 export const ETH_BOT_VAULT_ABI = [
     {
         "inputs": [],
@@ -260,6 +261,19 @@ export const ETH_BOT_VAULT_ABI = [
                 "internalType": "uint256",
                 "name": "",
                 "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "tradingBotWallet",
+        "outputs": [
+            {
+                "internalType": "address payable",
+                "name": "",
+                "type": "address"
             }
         ],
         "stateMutability": "view",
